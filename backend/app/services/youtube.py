@@ -40,11 +40,13 @@ def song(video_id: str) -> Track:
     data = {'videoId': video_id, 'title': details.get('title'), 'author': details.get('author'), 'thumbnails': details.get('thumbnail', {}).get('thumbnails', []), 'duration_seconds': int(details.get('lengthSeconds', 0) or 0)}
     return track(data)
 
-def stream_url(video_id: str) -> str:
+def stream_url(video_id: str, preferred_container: str = 'auto') -> str:
     data = client().get_song(video_id).get('streamingData') or {}
     formats = data.get('adaptiveFormats') or data.get('formats') or []
     audio = [item for item in formats if str(item.get('mimeType', '')).startswith('audio/') and item.get('url')]
     if not audio:
         raise ValueError('No audio format available')
-    # Highest bitrate avoids a second client-side quality decision.
-    return max(audio, key=lambda item: int(item.get('bitrate', 0))).get('url')
+    # Match the browser codec when possible, then use the best available bitrate.
+    compatible = [item for item in audio if preferred_container == 'auto' or str(item.get('mimeType', '')).startswith(f'audio/{preferred_container}')]
+    candidates = compatible or audio
+    return max(candidates, key=lambda item: int(item.get('bitrate') or 0)).get('url')

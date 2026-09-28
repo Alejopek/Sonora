@@ -3,11 +3,12 @@ import sys
 import logging
 import json
 import re
+from typing import Literal
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from app.schemas.music import SearchResponse, Track
 from app.services.youtube import search, song, stream_url
 from app.services.youtube import client
@@ -55,6 +56,10 @@ def _lrclib_lyrics(title: str, artist: str, album: str = '', duration: int | Non
         return {'lyrics': [], 'source': 'LRCLIB', 'instrumental': True}
     return {'lyrics': lines, 'source': 'LRCLIB', 'instrumental': False} if lines else None
 
+def _is_artwork_host(hostname: str) -> bool:
+    hostname = hostname.lower().rstrip('.')
+    return any(hostname == domain or hostname.endswith(f'.{domain}') for domain in ('googleusercontent.com', 'ytimg.com', 'ggpht.com'))
+
 @router.get('/search', response_model=SearchResponse)
 def search_endpoint(q: str = Query(min_length=2, max_length=120)):
     try:
@@ -68,6 +73,28 @@ def song_endpoint(video_id: str):
     if not video_id.replace('-', '').replace('_', '').isalnum(): raise HTTPException(400, 'Identificador inválido.')
     try: return song(video_id)
     except Exception as exc: raise HTTPException(404, 'Canción no encontrada.') from exc
+
+@router.get('/artwork')
+def artwork_endpoint(url: str = Query(min_length=1, max_length=2048)):
+    parsed = urlparse(url)
+    if parsed.scheme != 'https' or not parsed.hostname or not _is_artwork_host(parsed.hostname):
+        raise HTTPException(400, 'Origen de portada no permitido.')
+    request = Request(url, headers={'User-Agent': 'Sonora/0.1 artwork palette'})
+    try:
+        with urlopen(request, timeout=8) as remote:
+            final_url = urlparse(remote.geturl())
+            content_type = remote.headers.get_content_type()
+            if final_url.scheme != 'https' or not final_url.hostname or not _is_artwork_host(final_url.hostname) or not content_type.startswith('image/'):
+                raise HTTPException(502, 'La portada no es válida.')
+            content = remote.read(5 * 1024 * 1024 + 1)
+            if len(content) > 5 * 1024 * 1024:
+                raise HTTPException(413, 'La portada es demasiado grande.')
+        return Response(content=content, media_type=content_type, headers={'Cache-Control': 'public, max-age=86400'})
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception('No se pudo cargar la portada para extraer su paleta')
+        raise HTTPException(502, 'No se pudo cargar la portada.') from exc
 
 @router.get('/songs/{video_id}/lyrics')
 def lyrics_endpoint(video_id: str, title: str = Query(default='', max_length=200), artist: str = Query(default='', max_length=200), album: str = Query(default='', max_length=200), duration: int | None = Query(default=None, ge=1, le=3600)):
@@ -103,19 +130,21 @@ def lyrics_endpoint(video_id: str, title: str = Query(default='', max_length=200
         return {'lyrics': [], 'source': None, 'instrumental': False}
 
 @router.get('/stream/{video_id}')
-def stream_endpoint(video_id: str):
+def stream_endpoint(video_id: str, container: Literal['auto', 'mp4', 'webm'] = Query(default='auto')):
     if not video_id.replace('-', '').replace('_', '').isalnum(): raise HTTPException(400, 'Identificador inválido.')
     try:
-        return RedirectResponse(stream_url(video_id), status_code=307)
+        return RedirectResponse(stream_url(video_id, container), status_code=307)
     except Exception:
         # ytmusicapi's signed URLs are preferred; yt-dlp remains a fallback for
         # videos whose adaptive format data is not exposed.
-        pass
+        logger.exception('No se pudo resolver el stream directo para %s; se prueba yt-dlp', video_id)
     try:
         result = subprocess.run([sys.executable, '-m', 'yt_dlp', '--no-playlist', '--format', 'bestaudio[ext=m4a]/bestaudio', '--get-url', f'https://music.youtube.com/watch?v={video_id}'], capture_output=True, text=True, timeout=25, check=True)
         url = result.stdout.strip().splitlines()[0]
         return RedirectResponse(url, status_code=307)
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError, IndexError) as exc:
+        if isinstance(exc, subprocess.CalledProcessError):
+            logger.error('yt-dlp falló para %s: %s', video_id, (exc.stderr or '').strip())
         raise HTTPException(502, 'No se pudo preparar el stream de audio.') from exc
 
 @router.get('/artists/{artist_id}')

@@ -15,7 +15,11 @@ frontend/  React 19 + TypeScript + Vite
 backend/   FastAPI + ytmusicapi + yt-dlp
 ```
 
-- `frontend/src/App.tsx`: composición actual de páginas, layout y controles de UI.
+- `frontend/src/App.tsx`: layout de la aplicación y configuración de rutas en `Shell`.
+- `frontend/src/components/`: componentes reutilizables de navegación, canciones y reproductor (`Sidebar`, `SongRow`, `Section`, `Player`, `Queue`, `FullPlayer`).
+- `frontend/src/pages/`: páginas de inicio, búsqueda y estados vacíos.
+- `frontend/src/lib/format.ts`: formato de duración compartido por los reproductores.
+- `frontend/src/lib/data.ts`: selecciones locales usadas en Inicio.
 - `frontend/src/stores/player-store.ts`: fuente de verdad global del reproductor.
 - `frontend/src/services/api.ts`: único lugar para llamadas HTTP del cliente.
 - `backend/app/routes/music.py`: contratos HTTP y resolución de streaming.

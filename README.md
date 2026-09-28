@@ -50,9 +50,12 @@ Opcionalmente se puede definir `VITE_API_URL` en `frontend/.env` si la API no se
 
 ```text
 frontend/      React + TypeScript + Vite
+  src/App.tsx  layout general y rutas
+  src/components/ navegación, filas de canciones y controles del reproductor
+  src/pages/  inicio, búsqueda y páginas de biblioteca/favoritos
+  src/lib/    datos locales y formato compartido de duración
   src/stores/  Zustand: cola, progreso, volumen y preferencias persistidas
   src/services API client
-  src/components/pages (composición de interfaz)
 backend/       FastAPI
   app/routes/  endpoints públicos de catálogo/stream
   app/services adaptador ytmusicapi

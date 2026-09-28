@@ -1,0 +1,6 @@
+import { NavLink } from 'react-router-dom'
+import { Heart, Home, Library, Menu, Plus, Search } from 'lucide-react'
+
+const nav = [{ to: '/', label: 'Inicio', icon: Home }, { to: '/search', label: 'Buscar', icon: Search }, { to: '/library', label: 'Biblioteca', icon: Library }, { to: '/favorites', label: 'Favoritos', icon: Heart }]
+
+export function Sidebar({ compact, onCompact }: { compact: boolean; onCompact: () => void }) { return <aside className={`sidebar ${compact ? 'compact' : ''}`}><div className="brand"><span className="brand-mark">S</span>{!compact && <span>sonora</span>}<button className="icon-button collapse" onClick={onCompact} aria-label="Alternar barra lateral"><Menu size={18}/></button></div><nav>{nav.map(({ to, label, icon: Icon }) => <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={label}><Icon size={19}/>{!compact && <span>{label}</span>}</NavLink>)}</nav>{!compact && <div className="sidebar-section"><p>PLAYLISTS</p><button className="playlist-create"><Plus size={17}/> Nueva playlist</button><span className="muted small">Tu colección aparece aquí.</span></div>}<div className="account"><span className="avatar">AR</span>{!compact && <div><b>Alex Rivera</b><small>Plan personal</small></div>}</div></aside> }

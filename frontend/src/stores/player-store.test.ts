@@ -24,6 +24,7 @@ const initialState = {
   currentTime: 0,
   duration: 0,
   volume: 0.8,
+  lastAudibleVolume: 0.8,
   repeatMode: 'off' as const,
   shuffle: false,
   loading: false,
@@ -151,8 +152,18 @@ describe('player store', () => {
     expect(usePlayerStore.getState().currentIndex).toBe(1)
   })
 
-  it.fails('ajusta el índice actual al quitar un track anterior a la reproducción', () => {
-    // Known behavior: removeFromQueue filters the queue but leaves currentIndex unchanged.
+  it('incluye al inicio de la cola un track que no estaba en ella', () => {
+    const currentQueue = [makeTrack('a'), makeTrack('b')]
+    const selected = makeTrack('outside')
+    usePlayerStore.setState({ queue: currentQueue })
+
+    usePlayerStore.getState().playTrack(selected)
+
+    expect(usePlayerStore.getState().queue).toEqual([selected, ...currentQueue])
+    expect(usePlayerStore.getState().currentIndex).toBe(0)
+  })
+
+  it('ajusta el índice actual al quitar un track anterior a la reproducción', () => {
     const queue = [makeTrack('a'), makeTrack('b'), makeTrack('c')]
     usePlayerStore.setState({ queue, currentTrack: queue[2], currentIndex: 2 })
 
@@ -192,5 +203,14 @@ describe('player store', () => {
 
     setVolume(1)
     expect(usePlayerStore.getState().volume).toBe(1)
+  })
+
+  it('restaura el volumen anterior al desmutear', () => {
+    usePlayerStore.getState().setVolume(0.37)
+    usePlayerStore.getState().toggleMute()
+    expect(usePlayerStore.getState().volume).toBe(0)
+
+    usePlayerStore.getState().toggleMute()
+    expect(usePlayerStore.getState().volume).toBe(0.37)
   })
 })

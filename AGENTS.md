@@ -39,6 +39,7 @@ cd backend
 cd frontend
 npm install
 npm run dev
+npm test
 npm run build
 npm run lint
 ```
@@ -63,6 +64,6 @@ En Fish, `source .venv/bin/activate` es incorrecto; usar `source .venv/bin/activ
 ## Antes de entregar cambios
 
 1. No incluir `.env`, `.venv`, `node_modules`, `dist`, cookies o credenciales.
-2. Ejecutar `npm run build` y `npm run lint` en `frontend/`.
+2. Ejecutar `npm test`, `npm run build` y `npm run lint` en `frontend/`.
 3. Ejecutar `python -m compileall -q app` desde `backend/`.
 4. Actualizar README si cambian comandos, variables, endpoints o arquitectura.

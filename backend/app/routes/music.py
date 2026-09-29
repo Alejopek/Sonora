@@ -146,8 +146,8 @@ def stream_endpoint(video_id: str, container: Literal['auto', 'mp4', 'webm'] = Q
         cmd = [
             sys.executable, '-m', 'yt_dlp',
             '--no-playlist',
-            '--extractor-args', 'youtube:player_client=android,visionos',
-            '--format', 'bestaudio[ext=m4a]/bestaudio/best'
+            '--extractor-args', 'youtube:player_client=android;player_skip=webpage,configs,js',
+            '--format', 'bestaudio/best'
         ]
         
         cookie_file = os.getenv('YOUTUBE_COOKIES_FILE')
@@ -181,8 +181,8 @@ def stream_endpoint(video_id: str, container: Literal['auto', 'mp4', 'webm'] = Q
             fallback_cmd = [
                 sys.executable, '-m', 'yt_dlp',
                 '--no-playlist',
-                '--extractor-args', 'youtube:player_client=android,visionos',
-                '--format', 'bestaudio[ext=m4a]/bestaudio/best'
+                '--extractor-args', 'youtube:player_client=android;player_skip=webpage,configs,js',
+                '--format', 'bestaudio/best'
             ]
             if proxy:
                 fallback_cmd.extend(['--proxy', proxy])
@@ -243,8 +243,8 @@ def debug_stream(video_id: str):
         cmd = [
             sys.executable, '-m', 'yt_dlp',
             '--no-playlist',
-            '--extractor-args', 'youtube:player_client=android,visionos',
-            '--format', 'bestaudio[ext=m4a]/bestaudio/best'
+            '--extractor-args', 'youtube:player_client=android;player_skip=webpage,configs,js',
+            '--format', 'bestaudio/best'
         ]
         cookie_file = os.getenv('YOUTUBE_COOKIES_FILE')
         cookies_content = os.getenv('YOUTUBE_COOKIES')
@@ -273,8 +273,8 @@ def debug_stream(video_id: str):
             no_cookie_cmd = [
                 sys.executable, '-m', 'yt_dlp',
                 '--no-playlist',
-                '--extractor-args', 'youtube:player_client=android,visionos',
-                '--format', 'bestaudio[ext=m4a]/bestaudio/best'
+                '--extractor-args', 'youtube:player_client=android;player_skip=webpage,configs,js',
+                '--format', 'bestaudio/best'
             ]
             if proxy:
                 no_cookie_cmd.extend(['--proxy', proxy])

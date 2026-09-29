@@ -146,7 +146,7 @@ def stream_endpoint(video_id: str, container: Literal['auto', 'mp4', 'webm'] = Q
         cmd = [
             sys.executable, '-m', 'yt_dlp',
             '--no-playlist',
-            '--extractor-args', 'youtube:player_client=visionos',
+            '--extractor-args', 'youtube:player_client=android,visionos',
             '--format', 'bestaudio[ext=m4a]/bestaudio/best'
         ]
         
@@ -181,7 +181,7 @@ def stream_endpoint(video_id: str, container: Literal['auto', 'mp4', 'webm'] = Q
             fallback_cmd = [
                 sys.executable, '-m', 'yt_dlp',
                 '--no-playlist',
-                '--extractor-args', 'youtube:player_client=visionos',
+                '--extractor-args', 'youtube:player_client=android,visionos',
                 '--format', 'bestaudio[ext=m4a]/bestaudio/best'
             ]
             if proxy:
@@ -243,7 +243,7 @@ def debug_stream(video_id: str):
         cmd = [
             sys.executable, '-m', 'yt_dlp',
             '--no-playlist',
-            '--extractor-args', 'youtube:player_client=visionos',
+            '--extractor-args', 'youtube:player_client=android,visionos',
             '--format', 'bestaudio[ext=m4a]/bestaudio/best'
         ]
         cookie_file = os.getenv('YOUTUBE_COOKIES_FILE')
@@ -273,7 +273,7 @@ def debug_stream(video_id: str):
             no_cookie_cmd = [
                 sys.executable, '-m', 'yt_dlp',
                 '--no-playlist',
-                '--extractor-args', 'youtube:player_client=visionos',
+                '--extractor-args', 'youtube:player_client=android,visionos',
                 '--format', 'bestaudio[ext=m4a]/bestaudio/best'
             ]
             if proxy:

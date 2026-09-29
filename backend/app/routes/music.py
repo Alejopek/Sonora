@@ -169,12 +169,34 @@ def stream_endpoint(video_id: str, container: Literal['auto', 'mp4', 'webm'] = Q
             cmd.extend(['--proxy', proxy])
 
         cmd.extend(['--get-url', f'https://music.youtube.com/watch?v={video_id}'])
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=25, check=True)
-        url = result.stdout.strip().splitlines()[0]
-        return RedirectResponse(url, status_code=307)
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError, IndexError) as exc:
-        if isinstance(exc, subprocess.CalledProcessError):
-            logger.error('yt-dlp falló para %s: %s', video_id, (exc.stderr or '').strip())
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=25, check=False)
+        if result.returncode == 0 and result.stdout.strip():
+            url = result.stdout.strip().splitlines()[0]
+            return RedirectResponse(url, status_code=307)
+
+        # If it failed and we had cookies attached, try once more without cookies
+        # (invalid/rotated cookies often cause YouTube to abort even when anonymous requests work)
+        if cookie_file:
+            logger.warning('yt-dlp falló con cookies para %s; reintentando sin cookies: %s', video_id, (result.stderr or '').strip())
+            fallback_cmd = [
+                sys.executable, '-m', 'yt_dlp',
+                '--no-playlist',
+                '--extractor-args', 'youtube:player_client=visionos',
+                '--format', 'bestaudio[ext=m4a]/bestaudio/best'
+            ]
+            if proxy:
+                fallback_cmd.extend(['--proxy', proxy])
+            fallback_cmd.extend(['--get-url', f'https://music.youtube.com/watch?v={video_id}'])
+            fb_res = subprocess.run(fallback_cmd, capture_output=True, text=True, timeout=25, check=False)
+            if fb_res.returncode == 0 and fb_res.stdout.strip():
+                url = fb_res.stdout.strip().splitlines()[0]
+                return RedirectResponse(url, status_code=307)
+            logger.error('yt-dlp falló también sin cookies para %s: %s', video_id, (fb_res.stderr or '').strip())
+        else:
+            logger.error('yt-dlp falló para %s: %s', video_id, (result.stderr or '').strip())
+
+        raise HTTPException(502, 'No se pudo preparar el stream de audio.')
+    except (subprocess.TimeoutExpired, FileNotFoundError, IndexError) as exc:
         raise HTTPException(502, 'No se pudo preparar el stream de audio.') from exc
     finally:
         if temp_cookie_path and os.path.exists(temp_cookie_path):
@@ -244,7 +266,25 @@ def debug_stream(video_id: str):
         cmd.extend(['--get-url', f'https://music.youtube.com/watch?v={video_id}'])
         info['yt_dlp_cmd'] = ' '.join(cmd)
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, check=False)
-        info['yt_dlp'] = {'returncode': result.returncode, 'stdout_preview': (result.stdout or '')[:200], 'stderr_preview': (result.stderr or '')[:500]}
+        info['yt_dlp'] = {'returncode': result.returncode, 'stdout_preview': (result.stdout or '')[:200], 'stderr': (result.stderr or '')}
+        
+        # Test without cookies as well in debug
+        if cookie_file:
+            no_cookie_cmd = [
+                sys.executable, '-m', 'yt_dlp',
+                '--no-playlist',
+                '--extractor-args', 'youtube:player_client=visionos',
+                '--format', 'bestaudio[ext=m4a]/bestaudio/best'
+            ]
+            if proxy:
+                no_cookie_cmd.extend(['--proxy', proxy])
+            no_cookie_cmd.extend(['--get-url', f'https://music.youtube.com/watch?v={video_id}'])
+            no_cookie_res = subprocess.run(no_cookie_cmd, capture_output=True, text=True, timeout=30, check=False)
+            info['yt_dlp_no_cookies'] = {
+                'returncode': no_cookie_res.returncode,
+                'stdout_preview': (no_cookie_res.stdout or '')[:200],
+                'stderr': (no_cookie_res.stderr or '')
+            }
     except Exception as exc:
         info['yt_dlp'] = {'status': 'exception', 'error': str(exc)}
     finally:

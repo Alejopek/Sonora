@@ -198,3 +198,49 @@ def playlist_endpoint(playlist_id: str):
         data = client().get_playlist(playlist_id)
         return {'id': playlist_id, 'title': data.get('title', ''), 'author': data.get('author', ''), 'thumbnails': data.get('thumbnails', []), 'tracks': data.get('tracks', [])}
     except Exception as exc: raise HTTPException(404, 'Playlist no encontrada.') from exc
+
+@router.get('/debug/stream/{video_id}')
+def debug_stream(video_id: str):
+    """Temporary diagnostic endpoint — remove after debugging."""
+    info: dict = {'video_id': video_id, 'cookies_env_set': bool(os.getenv('YOUTUBE_COOKIES')), 'cookies_env_length': len(os.getenv('YOUTUBE_COOKIES', '')), 'cookies_file_env': os.getenv('YOUTUBE_COOKIES_FILE', '(not set)'), 'proxy_env': os.getenv('HTTPS_PROXY', os.getenv('HTTP_PROXY', '(not set)'))}
+    # Test ytmusicapi first
+    try:
+        url = stream_url(video_id, 'auto')
+        info['ytmusicapi'] = {'status': 'ok', 'url_preview': url[:120] if url else None}
+        return info
+    except Exception as exc:
+        info['ytmusicapi'] = {'status': 'error', 'error': str(exc)}
+    # Test yt-dlp fallback
+    temp_cookie_path = None
+    try:
+        cmd = [sys.executable, '-m', 'yt_dlp', '--no-playlist', '--format', 'bestaudio[ext=m4a]/bestaudio']
+        cookie_file = os.getenv('YOUTUBE_COOKIES_FILE')
+        cookies_content = os.getenv('YOUTUBE_COOKIES')
+        if cookies_content and not cookie_file:
+            temp = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt')
+            temp.write(cookies_content)
+            temp.close()
+            temp_cookie_path = temp.name
+            cookie_file = temp_cookie_path
+        info['cookie_file_used'] = cookie_file or '(none)'
+        if cookie_file and Path(cookie_file).exists():
+            cmd.extend(['--cookies', cookie_file])
+            info['cookie_file_exists'] = True
+        else:
+            info['cookie_file_exists'] = False
+        proxy = os.getenv('HTTPS_PROXY') or os.getenv('HTTP_PROXY')
+        if proxy:
+            cmd.extend(['--proxy', proxy])
+        cmd.extend(['--get-url', f'https://music.youtube.com/watch?v={video_id}'])
+        info['yt_dlp_cmd'] = ' '.join(cmd)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, check=False)
+        info['yt_dlp'] = {'returncode': result.returncode, 'stdout_preview': (result.stdout or '')[:200], 'stderr_preview': (result.stderr or '')[:500]}
+    except Exception as exc:
+        info['yt_dlp'] = {'status': 'exception', 'error': str(exc)}
+    finally:
+        if temp_cookie_path and os.path.exists(temp_cookie_path):
+            try:
+                os.remove(temp_cookie_path)
+            except OSError:
+                pass
+    return info

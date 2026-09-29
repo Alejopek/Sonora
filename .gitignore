@@ -22,7 +22,7 @@ __pycache__/
 !.env.*.example
 *.pem
 *.key
-cookies.txt
+*cookies*.txt
 browser.json
 
 # Local runtime output and editor/OS files

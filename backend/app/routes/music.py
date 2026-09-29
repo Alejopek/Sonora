@@ -143,7 +143,12 @@ def stream_endpoint(video_id: str, container: Literal['auto', 'mp4', 'webm'] = Q
         logger.exception('No se pudo resolver el stream directo para %s; se prueba yt-dlp', video_id)
     temp_cookie_path = None
     try:
-        cmd = [sys.executable, '-m', 'yt_dlp', '--no-playlist', '--format', 'bestaudio[ext=m4a]/bestaudio']
+        cmd = [
+            sys.executable, '-m', 'yt_dlp',
+            '--no-playlist',
+            '--extractor-args', 'youtube:player_client=visionos',
+            '--format', 'bestaudio[ext=m4a]/bestaudio/best'
+        ]
         
         cookie_file = os.getenv('YOUTUBE_COOKIES_FILE')
         cookies_content = os.getenv('YOUTUBE_COOKIES')
@@ -213,7 +218,12 @@ def debug_stream(video_id: str):
     # Test yt-dlp fallback
     temp_cookie_path = None
     try:
-        cmd = [sys.executable, '-m', 'yt_dlp', '--no-playlist', '--format', 'bestaudio[ext=m4a]/bestaudio']
+        cmd = [
+            sys.executable, '-m', 'yt_dlp',
+            '--no-playlist',
+            '--extractor-args', 'youtube:player_client=visionos',
+            '--format', 'bestaudio[ext=m4a]/bestaudio/best'
+        ]
         cookie_file = os.getenv('YOUTUBE_COOKIES_FILE')
         cookies_content = os.getenv('YOUTUBE_COOKIES')
         if cookies_content and not cookie_file:

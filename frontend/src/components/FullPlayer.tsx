@@ -46,9 +46,9 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
   }, [s.currentTrack?.id, lyricsAttempt])
   const isLyricsLoading = Boolean(s.currentTrack && (lyricsLoading || lyricsTrackId !== s.currentTrack.id))
   const visibleLyrics = lyricsTrackId === s.currentTrack?.id ? lyrics : []
-  const hasSyncedLyrics = visibleLyrics.some((line) => line.startTime !== null)
-  const lastStartedLine = visibleLyrics.reduce((active, line, index) => line.startTime !== null && line.startTime / 1000 <= s.currentTime ? index : active, -1)
-  const activeLine = lastStartedLine >= 0 ? lastStartedLine : hasSyncedLyrics ? visibleLyrics.findIndex((line) => line.startTime !== null) : -1
+  const hasSyncedLyrics = visibleLyrics.some((line) => line?.startTime !== null && line?.startTime !== undefined)
+  const lastStartedLine = visibleLyrics.reduce((active, line, index) => line?.startTime != null && line.startTime / 1000 <= s.currentTime ? index : active, -1)
+  const activeLine = lastStartedLine >= 0 ? lastStartedLine : hasSyncedLyrics ? visibleLyrics.findIndex((line) => line?.startTime != null) : -1
   useEffect(() => { activeLineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }, [activeLine])
   if (!s.currentTrack) return null
   return <motion.div className={`music-player ${s.isPlaying ? 'is-playing' : ''}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

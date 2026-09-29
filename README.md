@@ -40,9 +40,14 @@ En `backend/.env`:
 # Opcional. Ruta a headers autenticados exportados por ytmusicapi.
 YTMUSIC_AUTH=
 FRONTEND_ORIGIN=http://localhost:5173
+
+# Opcional. Contenido o ruta de cookies en formato Netscape para evitar bloqueos de YouTube en cloud/Vercel.
+YOUTUBE_COOKIES=
+# YOUTUBE_COOKIES_FILE=/path/to/cookies.txt
+# HTTPS_PROXY=http://user:pass@proxy:port
 ```
 
-Las búsquedas públicas suelen funcionar sin autenticación. Para resultados personalizados o mayor estabilidad, seguí la guía de autenticación de `ytmusicapi` y colocá la ruta del archivo generado en `YTMUSIC_AUTH`. No publiques este archivo ni lo copies al frontend.
+Las búsquedas públicas suelen funcionar sin autenticación. Para resultados personalizados o mayor estabilidad, seguí la guía de autenticación de `ytmusicapi` y colocá la ruta del archivo generado en `YTMUSIC_AUTH`. En despliegues como Vercel donde YouTube bloquea peticiones de audio, definí `YOUTUBE_COOKIES` con el contenido del archivo `cookies.txt` de YouTube. No publiques este contenido ni lo copies al frontend.
 
 Opcionalmente se puede definir `VITE_API_URL` en `frontend/.env` si la API no se ejecuta en `http://localhost:8000/api`.
 

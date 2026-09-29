@@ -1,8 +1,11 @@
+import os
 import subprocess
 import sys
+import tempfile
 import logging
 import json
 import re
+from pathlib import Path
 from typing import Literal
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
@@ -138,14 +141,42 @@ def stream_endpoint(video_id: str, container: Literal['auto', 'mp4', 'webm'] = Q
         # ytmusicapi's signed URLs are preferred; yt-dlp remains a fallback for
         # videos whose adaptive format data is not exposed.
         logger.exception('No se pudo resolver el stream directo para %s; se prueba yt-dlp', video_id)
+    temp_cookie_path = None
     try:
-        result = subprocess.run([sys.executable, '-m', 'yt_dlp', '--no-playlist', '--format', 'bestaudio[ext=m4a]/bestaudio', '--get-url', f'https://music.youtube.com/watch?v={video_id}'], capture_output=True, text=True, timeout=25, check=True)
+        cmd = [sys.executable, '-m', 'yt_dlp', '--no-playlist', '--format', 'bestaudio[ext=m4a]/bestaudio']
+        
+        cookie_file = os.getenv('YOUTUBE_COOKIES_FILE')
+        cookies_content = os.getenv('YOUTUBE_COOKIES')
+        
+        if cookies_content and not cookie_file:
+            # Write cookies to a temporary file for yt-dlp to read
+            temp = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt')
+            temp.write(cookies_content)
+            temp.close()
+            temp_cookie_path = temp.name
+            cookie_file = temp_cookie_path
+            
+        if cookie_file and Path(cookie_file).exists():
+            cmd.extend(['--cookies', cookie_file])
+
+        proxy = os.getenv('HTTPS_PROXY') or os.getenv('HTTP_PROXY')
+        if proxy:
+            cmd.extend(['--proxy', proxy])
+
+        cmd.extend(['--get-url', f'https://music.youtube.com/watch?v={video_id}'])
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=25, check=True)
         url = result.stdout.strip().splitlines()[0]
         return RedirectResponse(url, status_code=307)
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError, IndexError) as exc:
         if isinstance(exc, subprocess.CalledProcessError):
             logger.error('yt-dlp falló para %s: %s', video_id, (exc.stderr or '').strip())
         raise HTTPException(502, 'No se pudo preparar el stream de audio.') from exc
+    finally:
+        if temp_cookie_path and os.path.exists(temp_cookie_path):
+            try:
+                os.remove(temp_cookie_path)
+            except OSError:
+                pass
 
 @router.get('/artists/{artist_id}')
 def artist_endpoint(artist_id: str):

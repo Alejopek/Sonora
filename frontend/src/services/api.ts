@@ -1,6 +1,6 @@
 import type { SearchResponse, Track } from '../types/music'
 
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api'
+const API = import.meta.env.VITE_API_URL ?? '/api'
 export const artworkUrl = (url: string) => `${API}/artwork?url=${encodeURIComponent(url)}`
 export async function searchMusic(query: string): Promise<SearchResponse> {
   const response = await fetch(`${API}/search?q=${encodeURIComponent(query)}`)

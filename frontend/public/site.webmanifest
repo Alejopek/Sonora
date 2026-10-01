@@ -1,0 +1,25 @@
+{
+  "id": "/",
+  "name": "Sonora",
+  "short_name": "Sonora",
+  "description": "Tu reproductor musical.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#090d13",
+  "theme_color": "#090d13",
+  "icons": [
+    {
+      "src": "/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Heart, Library, Search } from 'lucide-react'
-import { Sidebar } from './components/Sidebar'
+import { MobileNav, Sidebar } from './components/Sidebar'
 import { Player } from './components/Player'
 import { HomePage } from './pages/HomePage'
 import { SearchPage } from './pages/SearchPage'
@@ -55,6 +55,7 @@ function Shell() {
       <AnimatePresence mode="wait"><motion.div key={location.pathname} initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: .18 }}><Routes><Route path="/" element={<HomePage/>}/><Route path="/search" element={<SearchPage/>}/><Route path="/library" element={<PlaceholderPage title="Biblioteca" icon={Library}/>}/><Route path="/favorites" element={<PlaceholderPage title="Favoritos" icon={Heart}/>}/><Route path="*" element={<HomePage/>}/></Routes></motion.div></AnimatePresence>
     </main>
     <Player/>
+    <MobileNav/>
   </div>
 }
 

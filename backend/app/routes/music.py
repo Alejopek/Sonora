@@ -132,7 +132,7 @@ def lyrics_endpoint(video_id: str, title: str = Query(default='', max_length=200
         # return an empty result so the player can show that state cleanly.
         return {'lyrics': [], 'source': None, 'instrumental': False}
 
-@router.get('/stream/{video_id}')
+@router.api_route('/stream/{video_id}', methods=['GET', 'HEAD'])
 def stream_endpoint(video_id: str, container: Literal['auto', 'mp4', 'webm'] = Query(default='auto')):
     if not video_id.replace('-', '').replace('_', '').isalnum(): raise HTTPException(400, 'Identificador inválido.')
     try:

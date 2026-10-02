@@ -1,0 +1,25 @@
+name: Deploy Sonora CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: deploy-sonora
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Actualizar y Desplegar en Homelab
+    runs-on: self-hosted
+    steps:
+      - name: Actualizar repositorio y reconstruir contenedores
+        run: |
+          cd /home/server-ale/Sonora
+          echo "📥 Obteniendo cambios de git..."
+          git pull origin main
+          echo "🚀 Reconstruyendo y actualizando contenedores Docker..."
+          docker compose up -d --build
+          echo "✅ Estado final de los servicios:"
+          docker compose ps

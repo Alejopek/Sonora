@@ -1,0 +1,29 @@
+services:
+  sonora:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sonora-app
+    restart: unless-stopped
+    ports:
+      - "${SONORA_PORT:-8087}:8080"
+    environment:
+      - PORT=8080
+      - FRONTEND_ORIGIN=*
+    networks:
+      - sonora-net
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: sonora-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://sonora:8080
+    networks:
+      - sonora-net
+    depends_on:
+      - sonora
+
+networks:
+  sonora-net:
+    name: sonora-net
+    driver: bridge

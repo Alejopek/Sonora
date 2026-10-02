@@ -1,14 +1,60 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from app.routes.music import router
 
 load_dotenv()
 app = FastAPI(title='Sonora API', version='0.1.0')
-origins = [origin.strip() for origin in os.getenv('FRONTEND_ORIGIN', 'http://localhost:5173,http://127.0.0.1:5173').split(',')]
-app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=['GET'], allow_headers=['*'])
+
+frontend_origin = os.getenv('FRONTEND_ORIGIN', '*')
+if frontend_origin == '*':
+    origins = ['*']
+else:
+    origins = [origin.strip() for origin in frontend_origin.split(',')]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True if origins != ['*'] else False,
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
+
 app.include_router(router)
 
-@app.get('/health')
-def health(): return {'status': 'ok'}
+@app.api_route('/health', methods=['GET', 'HEAD'])
+def health():
+    return {'status': 'ok'}
+
+# Mount static files and SPA fallback
+STATIC_DIR = Path(os.getenv('STATIC_DIR', Path(__file__).resolve().parent.parent / 'static'))
+
+if STATIC_DIR.is_dir():
+    assets_dir = STATIC_DIR / 'assets'
+    if assets_dir.is_dir():
+        app.mount('/assets', StaticFiles(directory=str(assets_dir)), name='assets')
+
+    @app.api_route('/', methods=['GET', 'HEAD'])
+    async def serve_root():
+        index_file = STATIC_DIR / 'index.html'
+        if index_file.is_file():
+            return FileResponse(index_file)
+        return {'status': 'ok', 'message': 'Frontend static files not found'}
+
+    @app.api_route('/{full_path:path}', methods=['GET', 'HEAD'])
+    async def serve_spa(full_path: str):
+        if full_path.startswith('api/'):
+            raise HTTPException(status_code=404, detail='Not Found')
+        target = STATIC_DIR / full_path
+        if full_path and target.is_file():
+            return FileResponse(target)
+        index_file = STATIC_DIR / 'index.html'
+        if index_file.is_file():
+            return FileResponse(index_file)
+        raise HTTPException(status_code=404, detail='Frontend not found')
+
+

@@ -281,6 +281,23 @@ body,.app-shell{background:#090d13}
 .sidebar.compact .account{justify-content:center;padding:16px 0 2px}
 .sidebar.compact .account>div,.sidebar.compact .account .account-action{display:none}
 
+/* Account menu: inherits the active track accent through the shell CSS variables. */
+.account{position:relative}
+.account-menu{position:absolute;z-index:28;bottom:calc(100% + 14px);left:0;width:340px;overflow:hidden;padding:24px 20px 17px;border:1px solid rgb(var(--theme-rgb) / .64);border-radius:19px;background:radial-gradient(circle at 50% 4%,rgb(var(--theme-rgb) / .19),transparent 32%),linear-gradient(145deg,#16202deF,#0c121bdF);box-shadow:0 0 0 1px rgb(var(--theme-rgb) / .12),0 0 30px rgb(var(--theme-rgb) / .2),0 25px 65px #000b;backdrop-filter:blur(20px) saturate(1.18);-webkit-backdrop-filter:blur(20px) saturate(1.18);isolation:isolate}
+.account-menu:before{position:absolute;z-index:-1;top:-76px;left:50%;width:190px;height:190px;border-radius:50%;background:rgb(var(--theme-rgb) / .22);filter:blur(35px);content:'';animation:account-glow 3.2s ease-in-out infinite alternate}
+.account-menu-close{position:absolute;top:12px;right:12px;display:grid;width:31px;height:31px;place-items:center;border:1px solid #ffffff16;border-radius:50%;color:#aebaca;transition:transform .18s ease,background .18s ease,color .18s ease}
+.account-menu-close:hover{color:#fff;background:rgb(var(--theme-rgb) / .18);transform:rotate(90deg)}
+.account-menu-portrait{display:flex;justify-content:center;margin:1px 0 13px}
+.account-menu-avatar{width:112px;height:112px;border-radius:50%;background:#182232;box-shadow:0 0 0 1px rgb(var(--theme-rgb) / .78),0 0 0 7px rgb(var(--theme-rgb) / .10),0 0 30px rgb(var(--theme-rgb) / .42);overflow:hidden;transition:transform .22s ease,box-shadow .22s ease;cursor:pointer}
+.account-menu-avatar:hover{transform:scale(1.035);box-shadow:0 0 0 1px rgb(var(--theme-rgb) / .9),0 0 0 9px rgb(var(--theme-rgb) / .14),0 0 39px rgb(var(--theme-rgb) / .6)}
+.account-menu-identity{text-align:center}.account-menu-identity h2{margin:0;color:#f1f5fb;font:800 20px/1.2 Manrope;letter-spacing:-.6px;overflow-wrap:anywhere}.account-menu-identity p{margin:5px 0 20px;color:#a9b4c3;font-size:12px;overflow-wrap:anywhere}
+.account-menu-section{padding:13px 12px;border-top:1px solid #ffffff12;border-bottom:1px solid #ffffff12;background:#ffffff04}.account-menu-label{display:block;margin-bottom:9px;color:var(--theme-accent);font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase}.account-menu-detail{display:flex;align-items:center;gap:8px;color:#c3ccd8;font-size:12px;line-height:1.65}.account-menu-detail-dot{width:7px;height:7px;border-radius:50%;background:var(--theme-accent);box-shadow:0 0 10px rgb(var(--theme-rgb) / .85)}
+.account-menu-actions{display:grid;gap:3px;margin-top:12px}.account-menu-actions button{display:flex;align-items:center;gap:10px;width:100%;min-height:39px;padding:0 10px;border-radius:8px;color:#d3dbe6;font-size:13px;font-weight:650;text-align:left;transition:background .17s ease,color .17s ease,transform .17s ease}.account-menu-actions button:hover{background:rgb(var(--theme-rgb) / .15);color:#fff;transform:translateX(3px)}.account-menu-actions .account-menu-signout{margin-top:5px;color:#ffb7bd}.account-menu-actions .account-menu-signout:hover{background:#ff707414;color:#ffd9dd}
+@keyframes account-glow{to{opacity:.52;transform:translateX(-50%) scale(1.15)}}
+.sidebar.compact .account-menu{left:calc(100% + 12px);bottom:-4px}
+@media(max-width:900px){.account-menu{left:calc(100% + 12px);bottom:-4px}}
+@media(prefers-reduced-motion:reduce){.account-menu:before{animation:none}.account-menu-avatar,.account-menu-close,.account-menu-actions button{transition:none}}
+
 .music-disc-art{position:absolute;inset:36%;overflow:hidden;border:1px solid #ffffff55;border-radius:50%;opacity:0;transform:scale(.88);transition:opacity .35s ease,transform .5s cubic-bezier(.2,.8,.2,1);box-shadow:0 2px 10px #0009}
 .music-disc-art img{display:block;width:100%;height:100%;border:0;border-radius:50%;object-fit:cover;filter:saturate(.78) brightness(.82)}
 .music-disc-art:after{position:absolute;top:50%;left:50%;width:5px;height:5px;border:1px solid #ffffffaa;border-radius:50%;background:#171a20;content:'';transform:translate(-50%,-50%);box-shadow:0 0 2px #000;pointer-events:none}

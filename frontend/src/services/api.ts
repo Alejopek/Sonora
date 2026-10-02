@@ -5,8 +5,47 @@ const authToken = () => {
   try { return (JSON.parse(localStorage.getItem('sonora-auth') ?? '{}').state?.token as string | undefined) }
   catch { return undefined }
 }
+const DEV_MOCK_TOKEN = 'dev-mock-session-token'
+const devMockStorage = {
+  playlists: [
+    {
+      id: 1,
+      title: 'Favoritas de desarrollo',
+      description: 'Playlist simulada para testeo local',
+      created_at: new Date('2025-01-01').toISOString(),
+      items: [],
+    },
+  ] as UserPlaylist[],
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = authToken()
+  if (import.meta.env.DEV && token === DEV_MOCK_TOKEN) {
+    if (path === '/playlists' && (!init.method || init.method === 'GET')) {
+      return [...devMockStorage.playlists] as T
+    }
+    if (path === '/playlists' && init.method === 'POST') {
+      const payload = JSON.parse(String(init.body || '{}')) as { title?: string; description?: string }
+      const newPlaylist: UserPlaylist = {
+        id: Date.now(),
+        title: payload.title || 'Nueva playlist',
+        description: payload.description || '',
+        created_at: new Date().toISOString(),
+        items: [],
+      }
+      devMockStorage.playlists.unshift(newPlaylist)
+      return newPlaylist as T
+    }
+    if (path === '/favorites' || path === '/history') {
+      return [] as T
+    }
+    if (path === '/library/import') {
+      return { ok: true } as T
+    }
+    if (path === '/favorites/toggle') {
+      return { liked: true } as T
+    }
+  }
   const response = await fetch(`${API}${path}`, { ...init, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init.headers } })
   if (!response.ok) {
     const body = await response.json().catch(() => null) as { detail?: string } | null

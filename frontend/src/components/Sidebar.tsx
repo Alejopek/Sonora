@@ -1,18 +1,38 @@
 import { NavLink } from 'react-router-dom'
 import { Heart, Home, Library, LogIn, LogOut, Menu, Plus, Search } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { AnimatePresence } from 'framer-motion'
+import { useEffect, useRef, useState } from 'react'
 import { useAuthStore } from '../stores/auth-store'
 import { AuthModal } from './AuthModal'
 import { createPlaylist, getPlaylists, type UserPlaylist } from '../services/api'
 import { UserAvatar } from './UserAvatar'
+import { AccountMenu } from './AccountMenu'
 
 const nav = [{ to: '/', label: 'Inicio', icon: Home }, { to: '/search', label: 'Buscar', icon: Search }, { to: '/library', label: 'Biblioteca', icon: Library }, { to: '/favorites', label: 'Favoritos', icon: Heart }]
 
 export function Sidebar({ compact, onCompact }: { compact: boolean; onCompact: () => void }) {
   const [authOpen, setAuthOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
   const [playlists, setPlaylists] = useState<UserPlaylist[]>([])
+  const accountRef = useRef<HTMLDivElement>(null)
   const { user, signOut } = useAuthStore()
   useEffect(() => { if (!user) { setPlaylists([]); return } void getPlaylists().then(setPlaylists).catch(() => undefined) }, [user])
+  useEffect(() => {
+    if (!accountOpen) return
+    const closeOnOutsidePress = (event: PointerEvent) => {
+      if (!accountRef.current?.contains(event.target as Node)) setAccountOpen(false)
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setAccountOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutsidePress)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePress)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [accountOpen])
+  useEffect(() => { if (!user) setAccountOpen(false) }, [user])
   const addPlaylist = async () => {
     if (!user) { setAuthOpen(true); return }
     const title = window.prompt('Nombre de la playlist')?.trim()
@@ -35,13 +55,15 @@ export function Sidebar({ compact, onCompact }: { compact: boolean; onCompact: (
       </NavLink>)}
     </nav>
     {!compact && <div className="sidebar-section"><p>PLAYLISTS</p><button className="playlist-create" onClick={() => void addPlaylist()}><Plus size={17}/> Nueva playlist</button>{playlists.length ? playlists.slice(0, 6).map((playlist) => <span className="muted small sidebar-playlist" key={playlist.id}>{playlist.title}</span>) : <span className="muted small">{user ? 'Aún no tienes playlists.' : 'Inicia sesión para sincronizarlas.'}</span>}</div>}
-    <div className="account">
+    <div className="account" ref={accountRef}>
       {compact ? (
         <button
           className="avatar-btn"
-          onClick={() => (user ? signOut() : setAuthOpen(true))}
-          aria-label={user ? `Cerrar sesión (${user.username})` : 'Iniciar sesión'}
-          title={user ? `${user.username} (${user.email}) — Cerrar sesión` : 'Iniciar sesión'}
+          onClick={() => (user ? setAccountOpen((open) => !open) : setAuthOpen(true))}
+          aria-label={user ? `Abrir menú de ${user.username}` : 'Iniciar sesión'}
+          aria-expanded={user ? accountOpen : undefined}
+          aria-controls={user ? 'account-menu' : undefined}
+          title={user ? `${user.username} (${user.email})` : 'Iniciar sesión'}
         >
           <UserAvatar name={user?.username} size={40} />
         </button>
@@ -49,8 +71,10 @@ export function Sidebar({ compact, onCompact }: { compact: boolean; onCompact: (
         <>
           <button
             className="avatar-btn"
-            onClick={() => (!user && setAuthOpen(true))}
+            onClick={() => (user ? setAccountOpen((open) => !open) : setAuthOpen(true))}
             aria-label={user ? `Usuario: ${user.username}` : 'Iniciar sesión'}
+            aria-expanded={user ? accountOpen : undefined}
+            aria-controls={user ? 'account-menu' : undefined}
             title={user ? user.username : 'Iniciar sesión'}
           >
             <UserAvatar name={user?.username} size={40} />
@@ -68,6 +92,9 @@ export function Sidebar({ compact, onCompact }: { compact: boolean; onCompact: (
           </button>
         </>
       )}
+      <AnimatePresence>
+        {user && accountOpen && <AccountMenu user={user} onClose={() => setAccountOpen(false)} onSignOut={() => { signOut(); setAccountOpen(false) }} />}
+      </AnimatePresence>
     </div>
     <AuthModal open={authOpen} onOpenChange={setAuthOpen}/>
   </aside>

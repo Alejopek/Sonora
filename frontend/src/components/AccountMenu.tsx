@@ -1,8 +1,9 @@
 import { Heart, Library, LogOut, UserRound, X } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { SessionUser } from '../services/api'
+import { happy, surprised, wink, type AvatarExpression } from '../lib/blobatar-expressions'
 import { UserAvatar } from './UserAvatar'
 
 interface AccountMenuProps {
@@ -18,9 +19,14 @@ function joinedOn(date: string) {
   return new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' }).format(value)
 }
 
+const avatarExpressions = [happy, wink, surprised] as const
+
 export function AccountMenu({ user, onClose, onSignOut, mobile = false }: AccountMenuProps) {
   const navigate = useNavigate()
   const joined = joinedOn(user.created_at)
+  const [avatarExpression, setAvatarExpression] = useState<AvatarExpression>()
+  const expressionIndex = useRef(0)
+  const expressionTimeout = useRef<number | undefined>(undefined)
   const goTo = (path: string) => {
     navigate(path)
     onClose()
@@ -34,6 +40,19 @@ export function AccountMenu({ user, onClose, onSignOut, mobile = false }: Accoun
     document.addEventListener('keydown', closeOnEscape)
     return () => document.removeEventListener('keydown', closeOnEscape)
   }, [mobile, onClose])
+
+  useEffect(() => () => window.clearTimeout(expressionTimeout.current), [])
+
+  const animateAvatarExpression = () => {
+    const expression = avatarExpressions[expressionIndex.current % avatarExpressions.length]
+    expressionIndex.current += 1
+    setAvatarExpression(undefined)
+    window.requestAnimationFrame(() => {
+      setAvatarExpression(expression)
+      window.clearTimeout(expressionTimeout.current)
+      expressionTimeout.current = window.setTimeout(() => setAvatarExpression(undefined), 900)
+    })
+  }
 
   const menu = (
     <motion.section
@@ -51,7 +70,9 @@ export function AccountMenu({ user, onClose, onSignOut, mobile = false }: Accoun
         <X size={17} />
       </button>
       <div className="account-menu-portrait">
-        <UserAvatar name={user.username} size={112} className="account-menu-avatar" />
+        <button type="button" className="account-menu-avatar-trigger" onClick={animateAvatarExpression} aria-label="Animar expresión del avatar">
+          <UserAvatar name={user.username} size={112} className="account-menu-avatar" expression={avatarExpression} />
+        </button>
       </div>
       <div className="account-menu-identity">
         <h2>{user.username}</h2>

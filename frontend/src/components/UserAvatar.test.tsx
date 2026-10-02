@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { happy } from '../lib/blobatar-expressions'
 import { UserAvatar } from './UserAvatar'
 
 describe('UserAvatar', () => {
@@ -27,5 +28,11 @@ describe('UserAvatar', () => {
     const html = renderToStaticMarkup(<UserAvatar name="Usuario" size={40} followCursor={false} />)
     expect(html).toContain('data:image/svg+xml')
     expect(html).not.toContain('mo-eyes')
+  })
+
+  it('acepta expresiones de Blobatar sin sustituir el avatar animado', () => {
+    const html = renderToStaticMarkup(<UserAvatar name="Usuario" size={40} expression={happy} />)
+    expect(html).toContain('mo-eyes')
+    expect(html).toContain('mo-expr')
   })
 })

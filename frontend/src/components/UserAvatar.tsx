@@ -2,6 +2,7 @@ import { Blobatar } from '@blobatar/react'
 import { useGaze } from '@blobatar/react/gaze'
 import 'blobatar/motion.css'
 import 'blobatar/gaze.css'
+import type { AvatarExpression } from '../lib/blobatar-expressions'
 
 export interface UserAvatarProps {
   name?: string | null
@@ -9,6 +10,7 @@ export interface UserAvatarProps {
   className?: string
   title?: string
   followCursor?: boolean
+  expression?: AvatarExpression
 }
 
 export function UserAvatar({
@@ -17,6 +19,7 @@ export function UserAvatar({
   className = 'avatar',
   title,
   followCursor = true,
+  expression,
 }: UserAvatarProps) {
   const seed = name?.trim() || 'Invitado'
   const { ref } = useGaze({ travel: 4, lookAt: followCursor ? 'pointer' : null })
@@ -28,7 +31,7 @@ export function UserAvatar({
       title={title ?? seed}
     >
       {followCursor ? (
-        <Blobatar ref={ref} name={seed} size={size} animate="always" />
+        <Blobatar ref={ref} name={seed} size={size} animate="always" expression={expression as never} />
       ) : (
         <Blobatar name={seed} size={size} />
       )}

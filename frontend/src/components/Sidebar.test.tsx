@@ -18,27 +18,28 @@ describe('Sidebar', () => {
     expect(html).toContain('avatar-btn')
     expect(html).toContain('mo-eyes')
 
-    // NO debe mostrar el botón de acción de cuenta (account-action) ni el texto en modo colapsado
-    expect(html).not.toContain('account-action')
+    // NO debe mostrar un control adicional ni el texto en modo colapsado.
+    expect(html).not.toContain('account-trigger-copy')
     expect(html).not.toContain('Tu música, en cualquier lugar')
   })
 
-  it('en modo expandido (no compact) muestra el avatar, detalles y el botón de acción', () => {
+  it('en modo expandido (no compact) convierte toda la tarjeta de cuenta en un único disparador', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <Sidebar compact={false} onCompact={() => {}} />
       </MemoryRouter>
     )
 
-    // Muestra el avatar con blobatar
-    expect(html).toContain('avatar-btn')
+    // La tarjeta completa contiene el avatar y es el único control de la cuenta.
+    expect(html).toContain('account-trigger')
     expect(html).toContain('mo-eyes')
 
     // Muestra detalles de cuenta
     expect(html).toContain('Invitado')
     expect(html).toContain('Tu música, en cualquier lugar')
 
-    // Muestra el botón de acción de cuenta
-    expect(html).toContain('account-action')
+    // El antiguo control aislado no aparece en el marcado.
+    expect(html).not.toContain('account-action')
+    expect(html).toContain('aria-label="Iniciar sesión"')
   })
 })

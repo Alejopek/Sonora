@@ -3,6 +3,9 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Heart, Library, Search } from 'lucide-react'
 import { MobileNav, Sidebar } from './components/Sidebar'
+import { AccountMenu } from './components/AccountMenu'
+import { AuthModal } from './components/AuthModal'
+import { UserAvatar } from './components/UserAvatar'
 import { Player } from './components/Player'
 import { HomePage } from './pages/HomePage'
 import { SearchPage } from './pages/SearchPage'
@@ -15,9 +18,11 @@ import { importLocalLibrary } from './services/api'
 
 function Shell() {
   const [compact, setCompact] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
+  const [authOpen, setAuthOpen] = useState(false)
   const [palette, setPalette] = useState(defaultCoverPalette)
   const currentTrack = usePlayerStore((state) => state.currentTrack)
-  const { token, user, restore } = useAuthStore()
+  const { token, user, restore, signOut } = useAuthStore()
   const syncCloudLibrary = usePlayerStore((state) => state.syncCloudLibrary)
   const location = useLocation()
   const navigate = useNavigate()
@@ -65,11 +70,13 @@ function Shell() {
   return <div className="app-shell" style={themeStyle}>
     <Sidebar compact={compact} onCompact={() => setCompact(!compact)}/>
     <main className="content">
-      <header className="topbar"><div className="history-buttons"><button onClick={() => navigate(-1)}><ChevronLeft size={19}/></button><button onClick={() => navigate(1)}><ChevronRight size={19}/></button></div><div className="topbar-search" onClick={() => navigate('/search')}><Search size={17}/><span>Buscar en Sonora</span><kbd>⌘ K</kbd></div></header>
+      <header className="topbar"><div className="history-buttons"><button onClick={() => navigate(-1)}><ChevronLeft size={19}/></button><button onClick={() => navigate(1)}><ChevronRight size={19}/></button></div><div className="topbar-search" onClick={() => navigate('/search')}><Search size={17}/><span>Buscar en Sonora</span><kbd>⌘ K</kbd></div><button type="button" className="topbar-account-trigger" onClick={() => (user ? setAccountOpen(true) : setAuthOpen(true))} aria-label={user ? `Abrir menú de ${user.username}` : 'Iniciar sesión'} aria-expanded={user ? accountOpen : undefined} aria-controls={user ? 'mobile-account-menu' : undefined}><span>{user?.username ?? 'Invitado'}</span><UserAvatar name={user?.username} size={36}/></button></header>
       <AnimatePresence mode="wait"><motion.div key={location.pathname} initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: .18 }}><Routes><Route path="/" element={<HomePage/>}/><Route path="/search" element={<SearchPage/>}/><Route path="/library" element={<PlaceholderPage title="Biblioteca" icon={Library}/>}/><Route path="/favorites" element={<PlaceholderPage title="Favoritos" icon={Heart}/>}/><Route path="*" element={<HomePage/>}/></Routes></motion.div></AnimatePresence>
     </main>
     <Player/>
     <MobileNav/>
+    <AnimatePresence>{user && accountOpen && <AccountMenu mobile user={user} onClose={() => setAccountOpen(false)} onSignOut={() => { signOut(); setAccountOpen(false) }}/>}</AnimatePresence>
+    <AuthModal open={authOpen} onOpenChange={setAuthOpen}/>
   </div>
 }
 

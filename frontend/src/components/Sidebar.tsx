@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Heart, Home, Library, LogIn, LogOut, Menu, Plus, Search } from 'lucide-react'
+import { Heart, Home, Library, Menu, Plus, Search } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { useAuthStore } from '../stores/auth-store'
@@ -68,29 +68,23 @@ export function Sidebar({ compact, onCompact }: { compact: boolean; onCompact: (
           <UserAvatar name={user?.username} size={40} />
         </button>
       ) : (
-        <>
-          <button
-            className="avatar-btn"
-            onClick={() => (user ? setAccountOpen((open) => !open) : setAuthOpen(true))}
-            aria-label={user ? `Usuario: ${user.username}` : 'Iniciar sesión'}
-            aria-expanded={user ? accountOpen : undefined}
-            aria-controls={user ? 'account-menu' : undefined}
-            title={user ? user.username : 'Iniciar sesión'}
-          >
+        <button
+          type="button"
+          className="account-trigger"
+          onClick={() => (user ? setAccountOpen((open) => !open) : setAuthOpen(true))}
+          aria-label={user ? `Abrir menú de ${user.username}` : 'Iniciar sesión'}
+          aria-expanded={user ? accountOpen : undefined}
+          aria-controls={user ? 'account-menu' : undefined}
+          title={user ? `${user.username} (${user.email})` : 'Iniciar sesión'}
+        >
+          <span className="account-trigger-avatar" aria-hidden="true">
             <UserAvatar name={user?.username} size={40} />
-          </button>
-          <div>
+          </span>
+          <span className="account-trigger-copy">
             <b>{user?.username ?? 'Invitado'}</b>
             <small>{user ? user.email : 'Tu música, en cualquier lugar'}</small>
-          </div>
-          <button
-            className="icon-button account-action"
-            onClick={() => (user ? signOut() : setAuthOpen(true))}
-            aria-label={user ? 'Cerrar sesión' : 'Iniciar sesión'}
-          >
-            {user ? <LogOut size={16} /> : <LogIn size={16} />}
-          </button>
-        </>
+          </span>
+        </button>
       )}
       <AnimatePresence>
         {user && accountOpen && <AccountMenu user={user} onClose={() => setAccountOpen(false)} onSignOut={() => { signOut(); setAccountOpen(false) }} />}

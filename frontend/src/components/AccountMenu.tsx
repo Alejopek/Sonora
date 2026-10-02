@@ -1,5 +1,6 @@
 import { Heart, Library, LogOut, UserRound, X } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { SessionUser } from '../services/api'
 import { UserAvatar } from './UserAvatar'
@@ -8,6 +9,7 @@ interface AccountMenuProps {
   user: SessionUser
   onClose: () => void
   onSignOut: () => void
+  mobile?: boolean
 }
 
 function joinedOn(date: string) {
@@ -16,7 +18,7 @@ function joinedOn(date: string) {
   return new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' }).format(value)
 }
 
-export function AccountMenu({ user, onClose, onSignOut }: AccountMenuProps) {
+export function AccountMenu({ user, onClose, onSignOut, mobile = false }: AccountMenuProps) {
   const navigate = useNavigate()
   const joined = joinedOn(user.created_at)
   const goTo = (path: string) => {
@@ -24,20 +26,31 @@ export function AccountMenu({ user, onClose, onSignOut }: AccountMenuProps) {
     onClose()
   }
 
-  return (
+  useEffect(() => {
+    if (!mobile) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [mobile, onClose])
+
+  const menu = (
     <motion.section
-      id="account-menu"
-      className="account-menu"
+      id={mobile ? 'mobile-account-menu' : 'account-menu'}
+      className={`account-menu${mobile ? ' account-menu-mobile' : ''}`}
       aria-label="Menú de usuario"
-      initial={{ opacity: 0, y: 10, scale: 0.96 }}
+      aria-modal={mobile || undefined}
+      role={mobile ? 'dialog' : undefined}
+      initial={{ opacity: 0, y: mobile ? 28 : 10, scale: mobile ? 1 : 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 8, scale: 0.97 }}
+      exit={{ opacity: 0, y: mobile ? 28 : 8, scale: mobile ? 1 : 0.97 }}
       transition={{ type: 'spring', stiffness: 430, damping: 30 }}
     >
       <button className="account-menu-close" type="button" onClick={onClose} aria-label="Cerrar menú de usuario">
         <X size={17} />
       </button>
-      <div className="account-menu-portrait" title="Haz clic en el avatar">
+      <div className="account-menu-portrait">
         <UserAvatar name={user.username} size={112} className="account-menu-avatar" />
       </div>
       <div className="account-menu-identity">
@@ -56,4 +69,19 @@ export function AccountMenu({ user, onClose, onSignOut }: AccountMenuProps) {
       </div>
     </motion.section>
   )
+
+  if (!mobile) return menu
+
+  return <div className="account-menu-mobile-layer">
+    <motion.button
+      type="button"
+      className="account-menu-mobile-backdrop"
+      aria-label="Cerrar menú de usuario"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    />
+    {menu}
+  </div>
 }

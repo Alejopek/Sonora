@@ -3,3 +3,7 @@ uvicorn[standard]==0.34.0
 ytmusicapi==1.10.3
 yt-dlp==2026.8.19
 python-dotenv==1.0.1
+SQLAlchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+bcrypt==4.2.1
+PyJWT==2.10.1

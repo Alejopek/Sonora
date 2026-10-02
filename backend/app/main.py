@@ -1,14 +1,23 @@
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 from dotenv import load_dotenv
+load_dotenv()
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from app.routes.music import router
+from app.routes.account import router as account_router
+from app.database import close_database, initialize_database
 
-load_dotenv()
-app = FastAPI(title='Sonora API', version='0.1.0')
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await initialize_database()
+    yield
+    await close_database()
+
+app = FastAPI(title='Sonora API', version='0.2.0', lifespan=lifespan)
 
 frontend_origin = os.getenv('FRONTEND_ORIGIN', '*')
 if frontend_origin == '*':
@@ -25,6 +34,7 @@ app.add_middleware(
 )
 
 app.include_router(router)
+app.include_router(account_router)
 
 @app.api_route('/health', methods=['GET', 'HEAD'])
 def health():
@@ -56,5 +66,3 @@ if STATIC_DIR.is_dir():
         if index_file.is_file():
             return FileResponse(index_file)
         raise HTTPException(status_code=404, detail='Frontend not found')
-
-

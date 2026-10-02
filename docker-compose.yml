@@ -10,6 +10,29 @@ services:
     environment:
       - PORT=8080
       - FRONTEND_ORIGIN=*
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-sonora}:${POSTGRES_PASSWORD:-sonora_dev_password}@postgres:5432/${POSTGRES_DB:-sonora}
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env before starting Compose}
+      - JWT_EXPIRES_HOURS=${JWT_EXPIRES_HOURS:-168}
+    networks:
+      - sonora-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sonora}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sonora_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-sonora}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - sonora-net
 
@@ -23,7 +46,33 @@ services:
     depends_on:
       - sonora
 
+  tunnel-watcher:
+    image: python:3-alpine
+    container_name: sonora-tunnel-watcher
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TUNNEL_CONTAINER=sonora-tunnel
+      - UPTIME_KUMA_CONTAINER=uptime-kuma
+      - KUMA_DB_PATH=/kuma-data/kuma.db
+      - MONITOR_NAME=Sonora
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+      - GITHUB_REPO=${GITHUB_REPO:-Alejopek/Sonora}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${UPTIME_KUMA_DATA_DIR:-/home/server-ale/appa/uptime-kuma/uptime-kuma-data}:/kuma-data
+      - ${GH_CONFIG_DIR:-/home/server-ale/.config/gh}:/gh-config:ro
+      - ./scripts:/scripts:ro
+    command: ["python", "/scripts/tunnel_watcher.py"]
+    depends_on:
+      - tunnel
+
 networks:
   sonora-net:
     name: sonora-net
     driver: bridge
+
+volumes:
+  postgres_data:

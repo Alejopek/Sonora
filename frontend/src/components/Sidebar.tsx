@@ -1,9 +1,23 @@
 import { NavLink } from 'react-router-dom'
-import { Heart, Home, Library, Menu, Plus, Search } from 'lucide-react'
+import { Heart, Home, Library, LogIn, LogOut, Menu, Plus, Search } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useAuthStore } from '../stores/auth-store'
+import { AuthModal } from './AuthModal'
+import { createPlaylist, getPlaylists, type UserPlaylist } from '../services/api'
 
 const nav = [{ to: '/', label: 'Inicio', icon: Home }, { to: '/search', label: 'Buscar', icon: Search }, { to: '/library', label: 'Biblioteca', icon: Library }, { to: '/favorites', label: 'Favoritos', icon: Heart }]
 
 export function Sidebar({ compact, onCompact }: { compact: boolean; onCompact: () => void }) {
+  const [authOpen, setAuthOpen] = useState(false)
+  const [playlists, setPlaylists] = useState<UserPlaylist[]>([])
+  const { user, signOut } = useAuthStore()
+  useEffect(() => { if (!user) { setPlaylists([]); return } void getPlaylists().then(setPlaylists).catch(() => undefined) }, [user])
+  const addPlaylist = async () => {
+    if (!user) { setAuthOpen(true); return }
+    const title = window.prompt('Nombre de la playlist')?.trim()
+    if (!title) return
+    try { const playlist = await createPlaylist(title); setPlaylists((current) => [playlist, ...current]) } catch { /* Playback remains unaffected. */ }
+  }
   return <aside className={`sidebar ${compact ? 'compact' : ''}`}>
     <div className="brand">
       {compact
@@ -19,8 +33,9 @@ export function Sidebar({ compact, onCompact }: { compact: boolean; onCompact: (
         <Icon size={19}/>{!compact && <span>{label}</span>}
       </NavLink>)}
     </nav>
-    {!compact && <div className="sidebar-section"><p>PLAYLISTS</p><button className="playlist-create"><Plus size={17}/> Nueva playlist</button><span className="muted small">Tu colección aparece aquí.</span></div>}
-    <div className="account"><span className="avatar">AR</span>{!compact && <div><b>Alex Rivera</b><small>Plan personal</small></div>}</div>
+    {!compact && <div className="sidebar-section"><p>PLAYLISTS</p><button className="playlist-create" onClick={() => void addPlaylist()}><Plus size={17}/> Nueva playlist</button>{playlists.length ? playlists.slice(0, 6).map((playlist) => <span className="muted small sidebar-playlist" key={playlist.id}>{playlist.title}</span>) : <span className="muted small">{user ? 'Aún no tienes playlists.' : 'Inicia sesión para sincronizarlas.'}</span>}</div>}
+    <div className="account"><span className="avatar">{user?.username.slice(0, 2).toUpperCase() ?? 'SO'}</span>{!compact && <div><b>{user?.username ?? 'Invitado'}</b><small>{user ? user.email : 'Tu música, en cualquier lugar'}</small></div>}<button className="icon-button account-action" onClick={() => user ? signOut() : setAuthOpen(true)} aria-label={user ? 'Cerrar sesión' : 'Iniciar sesión'}>{user ? <LogOut size={16}/> : <LogIn size={16}/>}</button></div>
+    <AuthModal open={authOpen} onOpenChange={setAuthOpen}/>
   </aside>
 }
 

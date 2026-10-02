@@ -1,6 +1,19 @@
 import type { SearchResponse, Track } from '../types/music'
 
 const API = import.meta.env.VITE_API_URL ?? '/api'
+const authToken = () => {
+  try { return (JSON.parse(localStorage.getItem('sonora-auth') ?? '{}').state?.token as string | undefined) }
+  catch { return undefined }
+}
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = authToken()
+  const response = await fetch(`${API}${path}`, { ...init, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init.headers } })
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { detail?: string } | null
+    throw new Error(body?.detail ?? 'No se pudo completar la operación.')
+  }
+  return response.status === 204 ? undefined as T : response.json() as Promise<T>
+}
 export const artworkUrl = (url: string) => `${API}/artwork?url=${encodeURIComponent(url)}`
 export async function searchMusic(query: string): Promise<SearchResponse> {
   const response = await fetch(`${API}/search?q=${encodeURIComponent(query)}`)
@@ -24,3 +37,19 @@ export async function getLyrics(track: Pick<Track, 'id' | 'title' | 'artist' | '
 }
 export type AudioContainer = 'auto' | 'mp4' | 'webm'
 export const streamUrl = (id: string, container: AudioContainer = 'auto') => `${API}/stream/${encodeURIComponent(id)}?container=${container}`
+
+export type SessionUser = { id: number; username: string; email: string; created_at: string }
+export type Session = { token: string; user: SessionUser }
+export type SavedTrack = { videoId: string; title: string; artist: string; duration?: number; thumbnailUrl: string }
+export type SavedTrackResponse = SavedTrack & { id: number; added_at?: string; played_at?: string }
+export type UserPlaylist = { id: number; title: string; description: string; created_at: string; items: SavedTrackResponse[] }
+export const login = (email: string, password: string) => request<Session>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
+export const register = (username: string, email: string, password: string) => request<Session>('/auth/register', { method: 'POST', body: JSON.stringify({ username, email, password }) })
+export const getMe = () => request<SessionUser>('/auth/me')
+export const recordHistory = (track: SavedTrack) => request<SavedTrackResponse>('/history', { method: 'POST', body: JSON.stringify(track) })
+export const getHistory = () => request<SavedTrackResponse[]>('/history')
+export const toggleRemoteFavorite = (track: SavedTrack) => request<{ liked: boolean }>('/favorites/toggle', { method: 'POST', body: JSON.stringify(track) })
+export const getFavorites = () => request<SavedTrackResponse[]>('/favorites')
+export const getPlaylists = () => request<UserPlaylist[]>('/playlists')
+export const createPlaylist = (title: string, description = '') => request<UserPlaylist>('/playlists', { method: 'POST', body: JSON.stringify({ title, description }) })
+export const importLocalLibrary = (favorites: SavedTrack[], history: SavedTrack[]) => request<{ ok: boolean }>('/library/import', { method: 'POST', body: JSON.stringify({ favorites, history }) })

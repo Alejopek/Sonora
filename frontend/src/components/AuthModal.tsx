@@ -1,0 +1,11 @@
+import { useState, type FormEvent } from 'react'
+import * as Dialog from '@radix-ui/react-dialog'
+import { LogIn, UserPlus, X } from 'lucide-react'
+import { useAuthStore } from '../stores/auth-store'
+
+export function AuthModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const [registering, setRegistering] = useState(false); const [username, setUsername] = useState(''); const [email, setEmail] = useState(''); const [password, setPassword] = useState('')
+  const { signIn, signUp, loading, error, clearError } = useAuthStore()
+  const submit = async (event: FormEvent) => { event.preventDefault(); try { if (registering) await signUp(username, email, password); else await signIn(email, password); onOpenChange(false) } catch { /* State exposes the message. */ } }
+  return <Dialog.Root open={open} onOpenChange={onOpenChange}><Dialog.Portal><Dialog.Overlay className="auth-overlay"/><Dialog.Content className="auth-modal" aria-describedby={undefined}><Dialog.Close className="icon-button auth-close" aria-label="Cerrar"><X size={18}/></Dialog.Close><Dialog.Title>{registering ? 'Crear cuenta' : 'Iniciar sesión'}</Dialog.Title><Dialog.Description>{registering ? 'Guarda tu música y llévala contigo.' : 'Accede a tu biblioteca personal.'}</Dialog.Description><form onSubmit={submit}>{registering && <label>Usuario<input required minLength={2} value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username"/></label>}<label>Email<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email"/></label><label>Contraseña<input required type="password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={registering ? 'new-password' : 'current-password'}/></label>{error && <p className="auth-error" role="alert">{error}</p>}<button className="primary auth-submit" disabled={loading} type="submit">{registering ? <UserPlus size={17}/> : <LogIn size={17}/>} {loading ? 'Un momento…' : registering ? 'Crear cuenta' : 'Entrar'}</button></form><button className="text-button auth-switch" onClick={() => { setRegistering(!registering); clearError() }}>{registering ? '¿Ya tienes cuenta? Inicia sesión' : '¿Nuevo en Sonora? Crea una cuenta'}</button></Dialog.Content></Dialog.Portal></Dialog.Root>
+}

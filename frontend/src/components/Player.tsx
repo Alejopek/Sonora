@@ -3,15 +3,17 @@ import { AnimatePresence } from 'framer-motion'
 import { ListMusic, LoaderCircle, Pause, Play, Repeat, RotateCcw, Shuffle, SkipBack, SkipForward, Volume2, VolumeX, X } from 'lucide-react'
 import * as Slider from '@radix-ui/react-slider'
 import { CoverImage } from './CoverImage'
-import { streamUrl } from '../services/api'
+import { recordHistory, streamUrl } from '../services/api'
 import { fmt } from '../lib/format'
 import { usePlayerStore } from '../stores/player-store'
+import { useAuthStore } from '../stores/auth-store'
 import { Queue } from './Queue'
 import { FullPlayer } from './FullPlayer'
 
 export function Player() {
   const audio = useRef<HTMLAudioElement>(null)
   const s = usePlayerStore()
+  const token = useAuthStore((state) => state.token)
   const [queueOpen, setQueueOpen] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [streamAttempt, setStreamAttempt] = useState(0)
@@ -44,6 +46,12 @@ export function Player() {
       audio.current.currentTime = s.currentTime
     }
   }, [s.currentTime])
+
+  useEffect(() => {
+    if (!token || !s.currentTrack || !s.isPlaying) return
+    const track = s.currentTrack
+    void recordHistory({ videoId: track.id, title: track.title, artist: track.artist, duration: track.durationSeconds, thumbnailUrl: track.thumbnail }).catch(() => undefined)
+  }, [token, s.currentTrack?.id, s.isPlaying])
 
   if (!s.currentTrack) return null
   const toggle = () => s.setPlaying(!s.isPlaying)

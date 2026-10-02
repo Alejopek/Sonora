@@ -10,11 +10,15 @@ import { PlaceholderPage } from './pages/PlaceholderPage'
 import { usePlayerStore } from './stores/player-store'
 import { picks } from './lib/data'
 import { defaultCoverPalette, readCoverPalette } from './lib/palette'
+import { useAuthStore } from './stores/auth-store'
+import { importLocalLibrary } from './services/api'
 
 function Shell() {
   const [compact, setCompact] = useState(false)
   const [palette, setPalette] = useState(defaultCoverPalette)
   const currentTrack = usePlayerStore((state) => state.currentTrack)
+  const { token, user, restore } = useAuthStore()
+  const syncCloudLibrary = usePlayerStore((state) => state.syncCloudLibrary)
   const location = useLocation()
   const navigate = useNavigate()
   const paletteSource = currentTrack?.thumbnail || picks[0].thumbnail
@@ -38,6 +42,16 @@ function Shell() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [navigate])
+
+  useEffect(() => { void restore() }, [restore])
+  useEffect(() => {
+    if (!token || !user) return
+    const player = usePlayerStore.getState()
+    const toSaved = (track: typeof player.history[number]) => ({ videoId: track.id, title: track.title, artist: track.artist, duration: track.durationSeconds, thumbnailUrl: track.thumbnail })
+    const importKey = `sonora-library-imported-${user.id}`
+    const importExisting = localStorage.getItem(importKey) ? Promise.resolve() : importLocalLibrary(player.favorites.map(toSaved), player.history.map(toSaved)).then(() => localStorage.setItem(importKey, '1'))
+    void importExisting.then(syncCloudLibrary).catch(() => undefined)
+  }, [token, user, syncCloudLibrary])
 
   const themeStyle = {
     '--theme-accent': palette.accent,

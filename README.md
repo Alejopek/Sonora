@@ -51,6 +51,24 @@ Las búsquedas públicas suelen funcionar sin autenticación. Para resultados pe
 
 Opcionalmente se puede definir `VITE_API_URL` en `frontend/.env` si la API no se ejecuta en `http://localhost:8000/api`.
 
+### Despliegue con Docker y Túnel
+
+Las cuentas usan JWT y PostgreSQL; las playlists, favoritos e historial se guardan por usuario. Copiá `.env.example` a `.env`, reemplazá `JWT_SECRET` por un valor largo y aleatorio, y levantá todo con:
+
+```bash
+docker compose up -d --build
+```
+
+Compose inicia:
+- **Sonora** (backend FastAPI sirviendo el frontend React compilado).
+- **PostgreSQL 16** con volumen persistente `postgres_data` y healthcheck.
+- **Cloudflare Tunnel** (`sonora-tunnel`) para acceso público seguro temporal.
+- **Tunnel Watcher** (`sonora-tunnel-watcher`) que sincroniza automáticamente cualquier cambio de URL en Uptime Kuma, en la sección Website del repositorio de GitHub y mediante notificaciones a Telegram.
+
+Las variables disponibles en `.env` son `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `JWT_SECRET`, `JWT_EXPIRES_HOURS`, `SONORA_PORT`, `UPTIME_KUMA_DATA_DIR`, `GITHUB_REPO`, `GITHUB_TOKEN`, `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`.
+
+Al iniciar sesión, Sonora importa una vez los favoritos e historial ya almacenados localmente y después los sincroniza con la cuenta. La reproducción continúa usando el elemento HTML `<audio>` y `/api/stream`.
+
 ## Arquitectura
 
 ```text

@@ -1,8 +1,12 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { RepeatMode, Track } from '../types/music'
+import { getFavorites, getHistory, toggleRemoteFavorite, type SavedTrackResponse } from '../services/api'
+import { useAuthStore } from './auth-store'
 
-type PlayerState = { currentTrack: Track | null; queue: Track[]; history: Track[]; favorites: Track[]; currentIndex: number; isPlaying: boolean; currentTime: number; duration: number; volume: number; lastAudibleVolume: number; repeatMode: RepeatMode; shuffle: boolean; loading: boolean; error: string | null; playTrack: (track: Track, queue?: Track[]) => void; setPlaying: (value: boolean) => void; next: () => void; previous: () => void; seek: (time: number) => void; setDuration: (duration: number) => void; setVolume: (volume: number) => void; toggleMute: () => void; setLoading: (loading: boolean) => void; setError: (error: string | null) => void; toggleShuffle: () => void; cycleRepeat: () => void; addToQueue: (track: Track) => void; removeFromQueue: (index: number) => void; clearQueue: () => void; toggleFavorite: (track: Track) => void; isFavorite: (id: string) => boolean }
+type PlayerState = { currentTrack: Track | null; queue: Track[]; history: Track[]; favorites: Track[]; currentIndex: number; isPlaying: boolean; currentTime: number; duration: number; volume: number; lastAudibleVolume: number; repeatMode: RepeatMode; shuffle: boolean; loading: boolean; error: string | null; playTrack: (track: Track, queue?: Track[]) => void; setPlaying: (value: boolean) => void; next: () => void; previous: () => void; seek: (time: number) => void; setDuration: (duration: number) => void; setVolume: (volume: number) => void; toggleMute: () => void; setLoading: (loading: boolean) => void; setError: (error: string | null) => void; toggleShuffle: () => void; cycleRepeat: () => void; addToQueue: (track: Track) => void; removeFromQueue: (index: number) => void; clearQueue: () => void; toggleFavorite: (track: Track) => void; isFavorite: (id: string) => boolean; syncCloudLibrary: () => Promise<void> }
+const savedTrack = (track: Track) => ({ videoId: track.id, title: track.title, artist: track.artist, duration: track.durationSeconds, thumbnailUrl: track.thumbnail })
+const fromSavedTrack = (track: SavedTrackResponse): Track => ({ id: track.videoId, title: track.title, artist: track.artist, album: '', thumbnail: track.thumbnailUrl, durationSeconds: track.duration })
 export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   currentTrack: null, queue: [], history: [], favorites: [], currentIndex: -1, isPlaying: false, currentTime: 0, duration: 0, volume: .8, lastAudibleVolume: .8, repeatMode: 'off', shuffle: false, loading: false, error: null,
   playTrack: (track, suppliedQueue) => { const sourceQueue = suppliedQueue ?? get().queue; const index = sourceQueue.findIndex((item) => item.id === track.id); const queue = index >= 0 ? sourceQueue : [track, ...sourceQueue]; set((s) => ({ currentTrack: track, queue, history: [track, ...s.history.filter((item) => item.id !== track.id)].slice(0, 30), currentIndex: index >= 0 ? index : 0, currentTime: 0, duration: 0, isPlaying: true, loading: true, error: null })) },
@@ -20,8 +24,9 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     }
     return { queue }
   }), clearQueue: () => set({ queue: [], currentIndex: -1 }),
-  toggleFavorite: (track) => set((s) => ({ favorites: s.favorites.some((item) => item.id === track.id) ? s.favorites.filter((item) => item.id !== track.id) : [track, ...s.favorites] })),
-  isFavorite: (id) => get().favorites.some((track) => track.id === id)
+  toggleFavorite: (track) => { const wasFavorite = get().favorites.some((item) => item.id === track.id); set((s) => ({ favorites: wasFavorite ? s.favorites.filter((item) => item.id !== track.id) : [track, ...s.favorites] })); if (useAuthStore.getState().token) void toggleRemoteFavorite(savedTrack(track)).catch(() => set((s) => ({ favorites: wasFavorite ? [track, ...s.favorites] : s.favorites.filter((item) => item.id !== track.id) }))) },
+  isFavorite: (id) => get().favorites.some((track) => track.id === id),
+  syncCloudLibrary: async () => { if (!useAuthStore.getState().token) return; const [favorites, history] = await Promise.all([getFavorites(), getHistory()]); set({ favorites: favorites.map(fromSavedTrack), history: history.map(fromSavedTrack) }) }
 }), {
   name: 'sonora-player',
   version: 2,

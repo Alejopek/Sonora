@@ -1,4 +1,4 @@
-name: Deploy Sonora CI/CD
+name: Deploy Sonora
 
 on:
   push:
@@ -9,17 +9,36 @@ concurrency:
   group: deploy-sonora
   cancel-in-progress: false
 
+permissions:
+  contents: read
+  deployments: write
+
 jobs:
   deploy:
-    name: Actualizar y Desplegar en Homelab
+    name: Deploy to Production
     runs-on: self-hosted
+    environment:
+      name: Production
+      url: ${{ steps.extract-url.outputs.app_url }}
     steps:
-      - name: Actualizar repositorio y reconstruir contenedores
+      - name: Update repository and rebuild containers
         run: |
-          cd /home/server-ale/Sonora
-          echo "📥 Obteniendo cambios de git..."
+          cd "$HOME/Sonora"
           git pull origin main
-          echo "🚀 Reconstruyendo y actualizando contenedores Docker..."
-          docker compose up -d --build
-          echo "✅ Estado final de los servicios:"
-          docker compose ps
+          docker compose up -d --build --remove-orphans
+
+      - name: Set deployment URL
+        id: extract-url
+        run: |
+          cd "$HOME/Sonora"
+          if [ -n "${CUSTOM_DOMAIN:-}" ]; then
+            TUNNEL_URL="https://${CUSTOM_DOMAIN}"
+          else
+            TUNNEL_URL=$(docker compose logs tunnel 2>/dev/null | grep -o 'https://[a-zA-Z0-9.-]*\.trycloudflare\.com' | tail -n 1)
+          fi
+
+          if [ -n "$TUNNEL_URL" ]; then
+            echo "app_url=$TUNNEL_URL" >> "$GITHUB_OUTPUT"
+          else
+            echo "app_url=http://localhost:8087" >> "$GITHUB_OUTPUT"
+          fi

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '../stores/auth-store'
 import { AuthModal } from './AuthModal'
 import { createPlaylist, getPlaylists, type UserPlaylist } from '../services/api'
+import { UserAvatar } from './UserAvatar'
 
 const nav = [{ to: '/', label: 'Inicio', icon: Home }, { to: '/search', label: 'Buscar', icon: Search }, { to: '/library', label: 'Biblioteca', icon: Library }, { to: '/favorites', label: 'Favoritos', icon: Heart }]
 
@@ -34,7 +35,40 @@ export function Sidebar({ compact, onCompact }: { compact: boolean; onCompact: (
       </NavLink>)}
     </nav>
     {!compact && <div className="sidebar-section"><p>PLAYLISTS</p><button className="playlist-create" onClick={() => void addPlaylist()}><Plus size={17}/> Nueva playlist</button>{playlists.length ? playlists.slice(0, 6).map((playlist) => <span className="muted small sidebar-playlist" key={playlist.id}>{playlist.title}</span>) : <span className="muted small">{user ? 'Aún no tienes playlists.' : 'Inicia sesión para sincronizarlas.'}</span>}</div>}
-    <div className="account"><span className="avatar">{user?.username.slice(0, 2).toUpperCase() ?? 'SO'}</span>{!compact && <div><b>{user?.username ?? 'Invitado'}</b><small>{user ? user.email : 'Tu música, en cualquier lugar'}</small></div>}<button className="icon-button account-action" onClick={() => user ? signOut() : setAuthOpen(true)} aria-label={user ? 'Cerrar sesión' : 'Iniciar sesión'}>{user ? <LogOut size={16}/> : <LogIn size={16}/>}</button></div>
+    <div className="account">
+      {compact ? (
+        <button
+          className="avatar-btn"
+          onClick={() => (user ? signOut() : setAuthOpen(true))}
+          aria-label={user ? `Cerrar sesión (${user.username})` : 'Iniciar sesión'}
+          title={user ? `${user.username} (${user.email}) — Cerrar sesión` : 'Iniciar sesión'}
+        >
+          <UserAvatar name={user?.username} size={40} />
+        </button>
+      ) : (
+        <>
+          <button
+            className="avatar-btn"
+            onClick={() => (!user && setAuthOpen(true))}
+            aria-label={user ? `Usuario: ${user.username}` : 'Iniciar sesión'}
+            title={user ? user.username : 'Iniciar sesión'}
+          >
+            <UserAvatar name={user?.username} size={40} />
+          </button>
+          <div>
+            <b>{user?.username ?? 'Invitado'}</b>
+            <small>{user ? user.email : 'Tu música, en cualquier lugar'}</small>
+          </div>
+          <button
+            className="icon-button account-action"
+            onClick={() => (user ? signOut() : setAuthOpen(true))}
+            aria-label={user ? 'Cerrar sesión' : 'Iniciar sesión'}
+          >
+            {user ? <LogOut size={16} /> : <LogIn size={16} />}
+          </button>
+        </>
+      )}
+    </div>
     <AuthModal open={authOpen} onOpenChange={setAuthOpen}/>
   </aside>
 }

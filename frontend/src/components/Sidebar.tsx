@@ -39,7 +39,7 @@ export function Sidebar({ compact, onCompact }: { compact: boolean; onCompact: (
     if (!title) return
     try { const playlist = await createPlaylist(title); setPlaylists((current) => [playlist, ...current]) } catch { /* Playback remains unaffected. */ }
   }
-  return <aside className={`sidebar ${compact ? 'compact' : ''}`}>
+  return <aside className={`sidebar ${compact ? 'compact' : ''} ${accountOpen ? 'account-menu-open' : ''}`}>
     <div className="brand">
       {compact
         ? <button className="brand-mark compact-brand-toggle" onClick={onCompact} aria-label="Expandir barra lateral">

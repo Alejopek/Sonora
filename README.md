@@ -67,7 +67,7 @@ Compose inicia:
 
 Las variables disponibles en `.env` son `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `JWT_SECRET`, `JWT_EXPIRES_HOURS`, `SONORA_PORT`, `UPTIME_KUMA_DATA_DIR`, `GITHUB_REPO`, `GITHUB_TOKEN`, `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`.
 
-Al iniciar sesión, Sonora importa una vez los favoritos e historial ya almacenados localmente y después los sincroniza con la cuenta. Las playlists que se crean desde Biblioteca/Favoritos se guardan en el almacenamiento local del navegador (también en producción), mientras que las playlists de cuenta requieren iniciar sesión. La biblioteca reúne canciones favoritas, escuchadas recientemente y canciones agregadas a playlists. La reproducción continúa usando el elemento HTML `<audio>` y `/api/stream`.
+Al iniciar sesión, Sonora importa una vez los favoritos e historial ya almacenados localmente y después los sincroniza con la cuenta. La reproducción continúa usando el elemento HTML `<audio>` y `/api/stream`.
 
 ## Arquitectura
 

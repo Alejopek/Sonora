@@ -19,6 +19,7 @@ const initialState = {
   queue: [],
   history: [],
   favorites: [],
+  favoritePlaylists: [],
   currentIndex: -1,
   isPlaying: false,
   currentTime: 0,
@@ -212,5 +213,27 @@ describe('player store', () => {
 
     usePlayerStore.getState().toggleMute()
     expect(usePlayerStore.getState().volume).toBe(0.37)
+  })
+
+  it('administra playlists de biblioteca con nombre y canciones sin duplicados', () => {
+    const first = makeTrack('first')
+    const second = makeTrack('second')
+    const { createFavoritePlaylist } = usePlayerStore.getState()
+
+    createFavoritePlaylist('  Para el viaje  ')
+    const playlist = usePlayerStore.getState().favoritePlaylists[0]
+    expect(playlist.name).toBe('Para el viaje')
+
+    usePlayerStore.getState().addFavoriteToPlaylist(playlist.id, first)
+    usePlayerStore.getState().addFavoriteToPlaylist(playlist.id, first)
+    usePlayerStore.getState().addFavoriteToPlaylist(playlist.id, second)
+    expect(usePlayerStore.getState().favoritePlaylists[0].tracks).toEqual([second, first])
+
+    usePlayerStore.getState().removeTrackFromPlaylist(playlist.id, first.id)
+    expect(usePlayerStore.getState().favoritePlaylists[0].tracks).toEqual([second])
+    usePlayerStore.getState().renameFavoritePlaylist(playlist.id, 'Ruta')
+    expect(usePlayerStore.getState().favoritePlaylists[0].name).toBe('Ruta')
+    usePlayerStore.getState().deleteFavoritePlaylist(playlist.id)
+    expect(usePlayerStore.getState().favoritePlaylists).toEqual([])
   })
 })

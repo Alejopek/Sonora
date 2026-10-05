@@ -91,4 +91,8 @@ export const toggleRemoteFavorite = (track: SavedTrack) => request<{ liked: bool
 export const getFavorites = () => request<SavedTrackResponse[]>('/favorites')
 export const getPlaylists = () => request<UserPlaylist[]>('/playlists')
 export const createPlaylist = (title: string, description = '') => request<UserPlaylist>('/playlists', { method: 'POST', body: JSON.stringify({ title, description }) })
+export const updatePlaylist = (id: number, title: string, description = '') => request<UserPlaylist>(`/playlists/${id}`, { method: 'PATCH', body: JSON.stringify({ title, description }) })
+export const deletePlaylist = (id: number) => request<void>(`/playlists/${id}`, { method: 'DELETE' })
+export const addPlaylistTrack = (id: number, track: SavedTrack) => request<UserPlaylist>(`/playlists/${id}/items`, { method: 'POST', body: JSON.stringify(track) })
+export const removePlaylistTrack = (playlistId: number, itemId: number) => request<void>(`/playlists/${playlistId}/items/${itemId}`, { method: 'DELETE' })
 export const importLocalLibrary = (favorites: SavedTrack[], history: SavedTrack[]) => request<{ ok: boolean }>('/library/import', { method: 'POST', body: JSON.stringify({ favorites, history }) })

@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { Heart, Home, Library, Menu, Plus, Search } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
@@ -16,6 +16,7 @@ export function Sidebar({ compact, onCompact }: { compact: boolean; onCompact: (
   const [playlists, setPlaylists] = useState<UserPlaylist[]>([])
   const accountRef = useRef<HTMLDivElement>(null)
   const { user, signOut } = useAuthStore()
+  const navigate = useNavigate()
   useEffect(() => { if (!user) { setPlaylists([]); return } void getPlaylists().then(setPlaylists).catch(() => undefined) }, [user])
   useEffect(() => {
     if (!accountOpen) return
@@ -54,7 +55,7 @@ export function Sidebar({ compact, onCompact }: { compact: boolean; onCompact: (
         <Icon size={19}/>{!compact && <span>{label}</span>}
       </NavLink>)}
     </nav>
-    {!compact && <div className="sidebar-section"><p>PLAYLISTS</p><button className="playlist-create" onClick={() => void addPlaylist()}><Plus size={17}/> Nueva playlist</button>{playlists.length ? playlists.slice(0, 6).map((playlist) => <span className="muted small sidebar-playlist" key={playlist.id}>{playlist.title}</span>) : <span className="muted small">{user ? 'Aún no tienes playlists.' : 'Inicia sesión para sincronizarlas.'}</span>}</div>}
+    {!compact && <div className="sidebar-section"><p>PLAYLISTS</p><button className="playlist-create" onClick={() => void addPlaylist()}><Plus size={17}/> Nueva playlist</button>{playlists.length ? playlists.slice(0, 6).map((playlist) => <button type="button" className="sidebar-playlist" key={playlist.id} onClick={() => navigate(`/library/${playlist.id}`)} title={`Abrir ${playlist.title}`}><span className="muted small">{playlist.title}</span><small>{playlist.items.length}</small></button>) : <span className="muted small">{user ? 'Aún no tienes playlists.' : 'Inicia sesión para sincronizarlas.'}</span>}</div>}
     <div className="account" ref={accountRef}>
       {compact ? (
         <button

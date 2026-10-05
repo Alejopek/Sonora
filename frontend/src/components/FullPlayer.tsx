@@ -86,7 +86,7 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
           {isLyricsLoading && <p className="music-lyrics-message">Buscando la letra de este tema…</p>}
           {!isLyricsLoading && lyricsError && lyricsTrackId === s.currentTrack.id && <p className="music-lyrics-message">No se pudo conectar con el servicio de letras.<button className="lyrics-retry" onClick={() => setLyricsAttempt((attempt) => attempt + 1)}>Volver a intentar</button></p>}
           {!isLyricsLoading && !lyricsError && !visibleLyrics.length && <p className="music-lyrics-message">{instrumental ? 'Este tema es instrumental y no tiene letra.' : 'Todavía no encontramos la letra de este tema.'}</p>}
-          {!isLyricsLoading && visibleLyrics.map((line, index) => <p key={`${index}-${line.text}`} ref={index === activeLine ? activeLineRef : undefined} className={`music-lyric-line ${index === activeLine ? 'active' : ''}`}>{line.text}</p>)}
+          {!isLyricsLoading && visibleLyrics.map((line, index) => <p key={`${index}-${line.text}`} ref={index === activeLine ? activeLineRef : undefined} className={`music-lyric-line ${index === activeLine ? 'active' : ''} ${index === activeLine - 1 ? 'previous' : ''} ${index === activeLine + 1 ? 'next' : ''}`}>{line.text}</p>)}
         </div>
       </section>
     </main>

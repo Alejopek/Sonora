@@ -1,6 +1,298 @@
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import {
+  Check,
+  Copy,
+  Disc,
+  FolderPlus,
+  Heart,
+  ListPlus,
+  MoreHorizontal,
+  Pause,
+  Play,
+  Trash2,
+  User,
+} from 'lucide-react'
 import { CoverImage } from './CoverImage'
-import { Heart, MoreHorizontal, Pause, Play } from 'lucide-react'
+import { AddToPlaylistModal } from './AddToPlaylistModal'
 import { usePlayerStore } from '../stores/player-store'
 import type { Track } from '../types/music'
 
-export function SongRow({ track, index, queue, onMore, moreTitle }: { track: Track; index?: number; queue?: Track[]; onMore?: () => void; moreTitle?: string }) { const { currentTrack, isPlaying, playTrack, toggleFavorite, isFavorite } = usePlayerStore(); const active = currentTrack?.id === track.id; const liked = isFavorite(track.id); const toggleLike = () => toggleFavorite(track); return <div className={`song-row ${active ? 'playing' : ''}`}><button className="track-index" onClick={() => playTrack(track, queue)} aria-label={`Reproducir ${track.title}`}>{active && isPlaying ? <Pause size={15}/> : <>{index ?? <Play size={15}/>}</>}</button><CoverImage src={track.thumbnail} alt=""/><div className="track-copy"><b>{track.title}</b><span>{track.artist}</span></div><span className="album-name">{track.album}</span><button className={`like ${liked ? 'liked' : ''}`} onClick={toggleLike} aria-label="Favorito"><Heart size={17} fill={liked ? 'currentColor' : 'none'}/></button><span className="duration">{track.duration ?? '—'}</span><button className="icon-button row-menu" title={moreTitle ?? 'Más opciones'} aria-label={moreTitle ?? 'Más opciones'} onClick={onMore}><MoreHorizontal size={18}/></button></div> }
+export function SongRow({
+  track,
+  index,
+  queue,
+  onMore,
+  moreTitle,
+}: {
+  track: Track
+  index?: number
+  queue?: Track[]
+  onMore?: () => void
+  moreTitle?: string
+}) {
+  const navigate = useNavigate()
+  const { currentTrack, isPlaying, playTrack, setPlaying, addToQueue, toggleFavorite, isFavorite } =
+    usePlayerStore()
+
+  const active = currentTrack?.id === track.id
+  const isCurrentPlaying = active && isPlaying
+  const liked = isFavorite(track.id)
+
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuPlacement, setMenuPlacement] = useState<'bottom' | 'top'>('bottom')
+  const [playlistModalOpen, setPlaylistModalOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [queueAdded, setQueueAdded] = useState(false)
+
+  const menuContainerRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+
+  // Manejo de reproducción/pausa al hacer clic en el número/icono
+  const handlePlayToggle = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (active) {
+      setPlaying(!isPlaying)
+    } else {
+      playTrack(track, queue)
+    }
+  }
+
+  // Cierre de menú al hacer clic afuera o presionar Escape
+  useEffect(() => {
+    if (!menuOpen) return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (menuContainerRef.current && !menuContainerRef.current.contains(event.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [menuOpen])
+
+  const toggleMenu = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!menuOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      // Si queda poco espacio abajo, desplegar hacia arriba
+      if (spaceBelow < 230 && rect.top > 230) {
+        setMenuPlacement('top')
+      } else {
+        setMenuPlacement('bottom')
+      }
+      setMenuOpen(true)
+    } else {
+      setMenuOpen(false)
+    }
+  }
+
+  const handleAddToQueue = () => {
+    addToQueue(track)
+    setQueueAdded(true)
+    setTimeout(() => {
+      setQueueAdded(false)
+      setMenuOpen(false)
+    }, 1000)
+  }
+
+  const handleOpenPlaylistModal = () => {
+    setMenuOpen(false)
+    setPlaylistModalOpen(true)
+  }
+
+  const handleGoToArtist = () => {
+    setMenuOpen(false)
+    navigate(`/search?q=${encodeURIComponent(track.artist)}`)
+  }
+
+  const handleGoToAlbum = () => {
+    if (!track.album) return
+    setMenuOpen(false)
+    navigate(`/search?q=${encodeURIComponent(track.album)}`)
+  }
+
+  const handleCopyLink = async () => {
+    const url = `${window.location.origin}/search?q=${encodeURIComponent(track.title + ' ' + track.artist)}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => {
+        setCopied(false)
+        setMenuOpen(false)
+      }, 1200)
+    } catch {
+      setMenuOpen(false)
+    }
+  }
+
+  return (
+    <>
+      <div className={`song-row ${active ? 'playing' : ''}`}>
+        {/* 1) Columna de número / play */}
+        <button
+          type="button"
+          className={`track-index ${active ? 'active' : ''} ${isCurrentPlaying ? 'is-playing' : ''}`}
+          onClick={handlePlayToggle}
+          aria-label={isCurrentPlaying ? `Pausar ${track.title}` : `Reproducir ${track.title}`}
+        >
+          <span className="track-number">
+            {isCurrentPlaying ? (
+              <span className="sound-bars" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+            ) : (
+              index ?? <Play size={13} fill="currentColor" />
+            )}
+          </span>
+          <span className="track-hover-icon">
+            {isCurrentPlaying ? (
+              <Pause size={13} fill="currentColor" />
+            ) : (
+              <Play size={13} fill="currentColor" />
+            )}
+          </span>
+        </button>
+
+        {/* 2) Carátula */}
+        <CoverImage src={track.thumbnail} alt="" />
+
+        {/* 3) Título y artista */}
+        <div className="track-copy">
+          <b>{track.title}</b>
+          <span>{track.artist}</span>
+        </div>
+
+        {/* 4) Álbum */}
+        <span className="album-name">{track.album}</span>
+
+        {/* 5) Like / Favorito */}
+        <button
+          type="button"
+          className={`like ${liked ? 'liked' : ''}`}
+          onClick={() => toggleFavorite(track)}
+          aria-label={liked ? 'Quitar de favoritos' : 'Favorito'}
+        >
+          <Heart size={17} fill={liked ? 'currentColor' : 'none'} />
+        </button>
+
+        {/* 6) Duración */}
+        <span className="duration">{track.duration ?? '—'}</span>
+
+        {/* 7) Menú de tres puntos */}
+        <div className="row-menu-container" ref={menuContainerRef}>
+          <button
+            type="button"
+            ref={triggerRef}
+            className={`icon-button row-menu ${menuOpen ? 'menu-active' : ''}`}
+            title="Más opciones"
+            aria-label={`Más opciones para ${track.title}`}
+            aria-expanded={menuOpen}
+            onClick={toggleMenu}
+          >
+            <MoreHorizontal size={18} />
+          </button>
+
+          {menuOpen && (
+            <div
+              className={`song-dropdown-menu ${menuPlacement}`}
+              role="menu"
+              aria-label={`Opciones de ${track.title}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                className="song-dropdown-item"
+                onClick={handleAddToQueue}
+              >
+                {queueAdded ? <Check size={15} /> : <ListPlus size={15} />}
+                <span>{queueAdded ? 'Agregada a la cola' : 'Agregar a la cola'}</span>
+              </button>
+
+              <button
+                type="button"
+                role="menuitem"
+                className="song-dropdown-item"
+                onClick={handleOpenPlaylistModal}
+              >
+                <FolderPlus size={15} />
+                <span>Agregar a una playlist</span>
+              </button>
+
+              <button
+                type="button"
+                role="menuitem"
+                className="song-dropdown-item"
+                onClick={handleGoToArtist}
+              >
+                <User size={15} />
+                <span>Ir al artista</span>
+              </button>
+
+              {track.album && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="song-dropdown-item"
+                  onClick={handleGoToAlbum}
+                >
+                  <Disc size={15} />
+                  <span>Ir al álbum</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                role="menuitem"
+                className="song-dropdown-item"
+                onClick={handleCopyLink}
+              >
+                {copied ? <Check size={15} /> : <Copy size={15} />}
+                <span>{copied ? '¡Enlace copiado!' : 'Copiar enlace'}</span>
+              </button>
+
+              {onMore && (
+                <>
+                  <div className="song-dropdown-divider" role="separator" />
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="song-dropdown-item danger"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onMore()
+                    }}
+                  >
+                    <Trash2 size={15} />
+                    <span>{moreTitle ?? 'Quitar de la playlist'}</span>
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <AddToPlaylistModal
+        open={playlistModalOpen}
+        onOpenChange={setPlaylistModalOpen}
+        track={track}
+      />
+    </>
+  )
+}

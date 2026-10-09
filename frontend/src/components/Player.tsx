@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { ListMusic, LoaderCircle, Pause, Play, Repeat, RotateCcw, Shuffle, SkipBack, SkipForward, Volume2, VolumeX, X } from 'lucide-react'
+import { Heart, ListMusic, ListPlus, LoaderCircle, Pause, Play, Repeat, RotateCcw, Shuffle, SkipBack, SkipForward, Volume2, VolumeX, X } from 'lucide-react'
 import * as Slider from '@radix-ui/react-slider'
 import { CoverImage } from './CoverImage'
+import { AddToPlaylistModal } from './AddToPlaylistModal'
 import { recordHistory, streamUrl } from '../services/api'
 import { fmt } from '../lib/format'
 import { usePlayerStore } from '../stores/player-store'
@@ -16,6 +17,7 @@ export function Player() {
   const token = useAuthStore((state) => state.token)
   const [queueOpen, setQueueOpen] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const [playlistModalOpen, setPlaylistModalOpen] = useState(false)
   const [streamAttempt, setStreamAttempt] = useState(0)
   const [audioContainer] = useState(() => {
     const probe = document.createElement('audio')
@@ -74,10 +76,30 @@ export function Player() {
     />
     <footer className="player">
       {s.error && <div className="player-error" role="alert"><span>{s.error}</span><button onClick={() => { s.setError(null); s.setLoading(true); s.seek(0); setStreamAttempt((attempt) => attempt + 1) }} aria-label="Reintentar reproducción"><RotateCcw size={16}/></button><button onClick={() => s.setError(null)} aria-label="Cerrar aviso"><X size={17}/></button></div>}
-      <button className="now-track" onClick={() => setExpanded(true)}>
-        <CoverImage src={s.currentTrack.thumbnail} alt=""/>
-        <span><b>{s.currentTrack.title}</b><small>{s.currentTrack.artist}</small></span>
-      </button>
+      <div className="player-track-area">
+        <button className="now-track" onClick={() => setExpanded(true)}>
+          <CoverImage src={s.currentTrack.thumbnail} alt=""/>
+          <span><b>{s.currentTrack.title}</b><small>{s.currentTrack.artist}</small></span>
+        </button>
+        <button
+          type="button"
+          className={`like ${s.isFavorite(s.currentTrack.id) ? 'liked' : ''}`}
+          onClick={() => s.toggleFavorite(s.currentTrack!)}
+          aria-label={s.isFavorite(s.currentTrack.id) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+          title={s.isFavorite(s.currentTrack.id) ? 'En favoritos' : 'Añadir a favoritos'}
+        >
+          <Heart size={17} fill={s.isFavorite(s.currentTrack.id) ? 'currentColor' : 'none'} />
+        </button>
+        <button
+          type="button"
+          className="icon-button player-add-btn"
+          onClick={() => setPlaylistModalOpen(true)}
+          aria-label="Añadir a playlist o biblioteca"
+          title="Añadir a playlist"
+        >
+          <ListPlus size={17} />
+        </button>
+      </div>
       <div className="player-main">
         <div className="controls">
           <button className={s.shuffle ? 'control active-control' : 'control'} onClick={s.toggleShuffle} aria-label="Aleatorio"><Shuffle size={17}/></button>
@@ -102,5 +124,10 @@ export function Player() {
     </footer>
     <AnimatePresence>{queueOpen && <Queue onClose={() => setQueueOpen(false)}/>}</AnimatePresence>
     <AnimatePresence>{expanded && <FullPlayer onClose={() => setExpanded(false)}/>}</AnimatePresence>
+    <AddToPlaylistModal
+      open={playlistModalOpen}
+      onOpenChange={setPlaylistModalOpen}
+      track={s.currentTrack}
+    />
   </>
 }

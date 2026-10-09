@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ChevronDown, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react'
+import { ChevronDown, Heart, ListPlus, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react'
 import * as Slider from '@radix-ui/react-slider'
 import { CoverImage } from './CoverImage'
+import { AddToPlaylistModal } from './AddToPlaylistModal'
 import { fmt } from '../lib/format'
 import { usePlayerStore } from '../stores/player-store'
 import { getLyrics, type LyricLine } from '../services/api'
 
-export function FullPlayer({ onClose }: { onClose: () => void }) {
+export function FullPlayer({ onClose, onOpenAuth }: { onClose: () => void; onOpenAuth?: () => void }) {
   const s = usePlayerStore()
   const [lyrics, setLyrics] = useState<LyricLine[]>([])
   const [lyricsTrackId, setLyricsTrackId] = useState<string | null>(null)
@@ -17,6 +18,7 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
   const [coverOnVinyl, setCoverOnVinyl] = useState(false)
   const [lyricsSource, setLyricsSource] = useState<string | null>(null)
   const [lyricsAttempt, setLyricsAttempt] = useState(0)
+  const [playlistModalOpen, setPlaylistModalOpen] = useState(false)
   const lyricsListRef = useRef<HTMLDivElement>(null)
   const activeLineRef = useRef<HTMLParagraphElement>(null)
   useEffect(() => {
@@ -78,7 +80,34 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
           {coverOnVinyl && <button className="music-disc-toggle" onClick={() => setCoverOnVinyl(false)} aria-label="Restaurar la portada central" aria-pressed={coverOnVinyl} title="Restaurar portada central"/>}
           <span className="music-art-glow"/>
         </div>
-        <div className="music-track-meta"><span className="music-kicker">AHORA SUENA</span><h1>{s.currentTrack.title}</h1><p>{s.currentTrack.artist}</p><small>{s.currentTrack.album}</small></div>
+        <div className="music-track-meta">
+          <span className="music-kicker">AHORA SUENA</span>
+          <h1>{s.currentTrack.title}</h1>
+          <p>{s.currentTrack.artist}</p>
+          <small>{s.currentTrack.album}</small>
+          <div className="music-track-actions">
+            <button
+              type="button"
+              className={`music-action-btn music-like-btn ${s.isFavorite(s.currentTrack.id) ? 'liked' : ''}`}
+              onClick={() => s.toggleFavorite(s.currentTrack!)}
+              aria-label={s.isFavorite(s.currentTrack.id) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+              title={s.isFavorite(s.currentTrack.id) ? 'En favoritos' : 'Añadir a favoritos'}
+            >
+              <Heart size={18} fill={s.isFavorite(s.currentTrack.id) ? 'currentColor' : 'none'} />
+              <span>{s.isFavorite(s.currentTrack.id) ? 'En favoritos' : 'Me gusta'}</span>
+            </button>
+            <button
+              type="button"
+              className="music-action-btn music-playlist-btn"
+              onClick={() => setPlaylistModalOpen(true)}
+              aria-label="Añadir a playlist o biblioteca"
+              title="Añadir a playlist"
+            >
+              <ListPlus size={18} />
+              <span>Añadir a playlist</span>
+            </button>
+          </div>
+        </div>
       </section>
       <section className="music-lyrics-area">
         <header className="music-lyrics-heading"><div><span className="music-kicker">EN SINTONÍA</span><h2>Letra</h2></div><span className="music-lyrics-provider">{isLyricsLoading ? 'BUSCANDO' : lyricsSource ?? 'LETRA'}</span></header>
@@ -108,5 +137,11 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
         <Slider.Root className="music-volume-slider" value={[s.volume]} max={1} step={.01} onValueChange={([value]) => s.setVolume(value)} aria-label="Volumen"><Slider.Track><Slider.Range/></Slider.Track><Slider.Thumb aria-label="Nivel de volumen"/></Slider.Root>
       </div>
     </footer>
+    <AddToPlaylistModal
+      open={playlistModalOpen}
+      onOpenChange={setPlaylistModalOpen}
+      track={s.currentTrack}
+      onOpenAuth={onOpenAuth}
+    />
   </motion.div>
 }

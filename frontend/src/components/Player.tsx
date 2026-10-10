@@ -4,9 +4,9 @@ import { Heart, ListMusic, ListPlus, LoaderCircle, Pause, Play, Repeat, RotateCc
 import * as Slider from '@radix-ui/react-slider'
 import { CoverImage } from './CoverImage'
 import { AddToPlaylistModal } from './AddToPlaylistModal'
-import { recordHistory, streamUrl } from '../services/api'
+import { recordHistory, recordListeningEvent, streamUrl } from '../services/api'
 import { fmt } from '../lib/format'
-import { usePlayerStore } from '../stores/player-store'
+import { savedTrack, usePlayerStore } from '../stores/player-store'
 import { useAuthStore } from '../stores/auth-store'
 import { Queue } from './Queue'
 import { FullPlayer } from './FullPlayer'
@@ -19,6 +19,7 @@ export function Player() {
   const [expanded, setExpanded] = useState(false)
   const [playlistModalOpen, setPlaylistModalOpen] = useState(false)
   const [streamAttempt, setStreamAttempt] = useState(0)
+  const listening = useRef({ sessionId: '', trackId: '', listenedSeconds: 0, lastPosition: 0, lastReported: 0, started: false, finalized: false })
   const [audioContainer] = useState(() => {
     const probe = document.createElement('audio')
     return probe.canPlayType('audio/webm; codecs="opus"') ? 'webm' as const : 'mp4' as const
@@ -50,10 +51,28 @@ export function Player() {
   }, [s.currentTime])
 
   useEffect(() => {
-    if (!token || !s.currentTrack || !s.isPlaying) return
     const track = s.currentTrack
-    void recordHistory({ videoId: track.id, title: track.title, artist: track.artist, duration: track.durationSeconds, thumbnailUrl: track.thumbnail }).catch(() => undefined)
-  }, [token, s.currentTrack?.id, s.isPlaying])
+    if (!track) return
+    listening.current = { sessionId: globalThis.crypto?.randomUUID?.() ?? `${track.id}-${Date.now()}`, trackId: track.id, listenedSeconds: 0, lastPosition: 0, lastReported: 0, started: false, finalized: false }
+    return () => {
+      const state = listening.current
+      if (token && state.trackId === track.id && state.started && !state.finalized) {
+        state.finalized = true
+        void recordListeningEvent({ sessionId: state.sessionId, event: 'skipped', track: savedTrack(track), listenedSeconds: Math.round(state.listenedSeconds) }).catch(() => undefined)
+      }
+    }
+  }, [s.currentTrack?.id])
+
+  const reportListening = (event: 'started' | 'progress' | 'completed' | 'skipped', force = false) => {
+    const track = s.currentTrack
+    const state = listening.current
+    if (!token || !track || state.trackId !== track.id) return
+    if (!force && event === 'progress' && state.listenedSeconds - state.lastReported < 15) return
+    if (event === 'started') state.started = true
+    if (event === 'completed' || event === 'skipped') state.finalized = true
+    state.lastReported = state.listenedSeconds
+    void recordListeningEvent({ sessionId: state.sessionId, event, track: savedTrack(track), listenedSeconds: Math.round(state.listenedSeconds) }).catch(() => undefined)
+  }
 
   if (!s.currentTrack) return null
   const toggle = () => s.setPlaying(!s.isPlaying)
@@ -65,13 +84,21 @@ export function Player() {
       src={`${streamUrl(s.currentTrack.id, audioContainer)}&attempt=${streamAttempt}`}
       preload="auto"
       onLoadStart={() => s.setLoading(true)}
-      onTimeUpdate={(event) => s.seek(event.currentTarget.currentTime)}
+      onTimeUpdate={(event) => {
+        const position = event.currentTarget.currentTime
+        const state = listening.current
+        const delta = position - state.lastPosition
+        if (s.isPlaying && delta > 0 && delta < 3) state.listenedSeconds += delta
+        state.lastPosition = position
+        s.seek(position)
+        reportListening('progress')
+      }}
       onLoadedMetadata={(event) => s.setDuration(event.currentTarget.duration)}
       onWaiting={() => s.setLoading(true)}
       onStalled={() => s.setLoading(true)}
-      onPlaying={() => { s.setLoading(false); s.setError(null) }}
+      onPlaying={() => { s.setLoading(false); s.setError(null); if (!listening.current.started) { reportListening('started', true); const track = s.currentTrack; if (token && track) void recordHistory(savedTrack(track)).catch(() => undefined) } }}
       onCanPlay={() => s.setLoading(false)}
-      onEnded={s.next}
+      onEnded={() => { reportListening('completed', true); s.next() }}
       onError={() => { s.setLoading(false); s.setError('El stream no está disponible para esta canción.') }}
     />
     <footer className="player">

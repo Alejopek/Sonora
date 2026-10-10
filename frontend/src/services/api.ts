@@ -39,6 +39,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     if (path === '/favorites' || path === '/history') {
       return [] as T
     }
+    if (path === '/recommendations') return { date: new Date().toISOString().slice(0, 10), title: 'Mix diario', tracks: [], isEmpty: true } as T
+    if (path === '/statistics') return emptyStatistics as T
     if (path === '/library/import') {
       return { ok: true } as T
     }
@@ -79,7 +81,7 @@ export const streamUrl = (id: string, container: AudioContainer = 'auto') => `${
 
 export type SessionUser = { id: number; username: string; email: string; created_at: string }
 export type Session = { token: string; user: SessionUser }
-export type SavedTrack = { videoId: string; title: string; artist: string; duration?: number; thumbnailUrl: string }
+export type SavedTrack = { videoId: string; title: string; artist: string; artistId?: string; album?: string; albumId?: string; genres?: string[]; duration?: number; thumbnailUrl: string }
 export type SavedTrackResponse = SavedTrack & { id: number; added_at?: string; played_at?: string }
 export type UserPlaylist = { id: number; title: string; description: string; created_at: string; items: SavedTrackResponse[] }
 export const login = (email: string, password: string) => request<Session>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
@@ -96,3 +98,20 @@ export const deletePlaylist = (id: number) => request<void>(`/playlists/${id}`, 
 export const addPlaylistTrack = (id: number, track: SavedTrack) => request<UserPlaylist>(`/playlists/${id}/items`, { method: 'POST', body: JSON.stringify(track) })
 export const removePlaylistTrack = (playlistId: number, itemId: number) => request<void>(`/playlists/${playlistId}/items/${itemId}`, { method: 'DELETE' })
 export const importLocalLibrary = (favorites: SavedTrack[], history: SavedTrack[]) => request<{ ok: boolean }>('/library/import', { method: 'POST', body: JSON.stringify({ favorites, history }) })
+export type ListeningEvent = { sessionId: string; event: 'started' | 'progress' | 'completed' | 'skipped'; track: SavedTrack; listenedSeconds: number }
+export const recordListeningEvent = (event: ListeningEvent) => request<{ accepted: boolean }>('/listening/events', { method: 'POST', body: JSON.stringify(event) })
+export type Recommendation = Track & { reason: string; score: number }
+export type DailyMix = { date: string; title: string; tracks: Recommendation[]; isEmpty: boolean }
+export const getDailyMix = () => request<DailyMix>('/recommendations')
+export const getRecommendationQueue = () => request<{ tracks: Recommendation[]; title: string }>('/recommendations/queue')
+export const saveRecommendationPreferences = (seedTerms: string[]) => request<{ seedTerms: string[] }>('/recommendations/preferences', { method: 'PUT', body: JSON.stringify({ seedTerms }) })
+export const sendRecommendationFeedback = (track: SavedTrack, action: 'less' | 'exclude') => request<{ ok: boolean }>('/recommendations/feedback', { method: 'POST', body: JSON.stringify({ track, action }) })
+export type StatisticItem = { name?: string; title?: string; artist?: string; thumbnail?: string; listenedSeconds: number; plays: number }
+export type Statistics = { range: { label: string; start: string; end: string }; totals: { listenedSeconds: number; plays: number; artists: number; albums: number; genres: number; streakDays: number }; comparison?: { previousListenedSeconds: number; changePercent: number | null } | null; activity: { date: string; listenedSeconds: number }[]; hours: { hour: number; listenedSeconds: number }[]; top: { tracks: StatisticItem[]; artists: StatisticItem[]; albums: StatisticItem[]; genres: StatisticItem[] } }
+export const emptyStatistics: Statistics = { range: { label: 'Últimos 7 días', start: '', end: '' }, totals: { listenedSeconds: 0, plays: 0, artists: 0, albums: 0, genres: 0, streakDays: 0 }, comparison: null, activity: [], hours: [], top: { tracks: [], artists: [], albums: [], genres: [] } }
+export const getStatistics = (range: 'today' | '7d' | '30d' | 'all' | 'custom', start?: string, end?: string) => {
+  const params = new URLSearchParams({ range })
+  if (start) params.set('start', start)
+  if (end) params.set('end', end)
+  return request<Statistics>(`/statistics?${params}`)
+}

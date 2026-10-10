@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Check,
+  Ban,
   Copy,
   Disc,
   FolderPlus,
@@ -11,11 +12,14 @@ import {
   Pause,
   Play,
   Trash2,
+  ThumbsDown,
   User,
 } from 'lucide-react'
 import { CoverImage } from './CoverImage'
 import { AddToPlaylistModal } from './AddToPlaylistModal'
-import { usePlayerStore } from '../stores/player-store'
+import { savedTrack, usePlayerStore } from '../stores/player-store'
+import { sendRecommendationFeedback } from '../services/api'
+import { useAuthStore } from '../stores/auth-store'
 import type { Track } from '../types/music'
 
 export function SongRow({
@@ -24,12 +28,16 @@ export function SongRow({
   queue,
   onMore,
   moreTitle,
+  recommendation = false,
+  onFeedback,
 }: {
   track: Track
   index?: number
   queue?: Track[]
   onMore?: () => void
   moreTitle?: string
+  recommendation?: boolean
+  onFeedback?: (id: string) => void
 }) {
   const navigate = useNavigate()
   const { currentTrack, isPlaying, playTrack, setPlaying, addToQueue, toggleFavorite, isFavorite } =
@@ -38,6 +46,7 @@ export function SongRow({
   const active = currentTrack?.id === track.id
   const isCurrentPlaying = active && isPlaying
   const liked = isFavorite(track.id)
+  const token = useAuthStore((state) => state.token)
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuPlacement, setMenuPlacement] = useState<'bottom' | 'top'>('bottom')
@@ -138,9 +147,14 @@ export function SongRow({
     }
   }
 
+  const feedback = (action: 'less' | 'exclude') => {
+    if (!token) return
+    void sendRecommendationFeedback(savedTrack(track), action).then(() => onFeedback?.(track.id)).catch(() => undefined)
+  }
+
   return (
     <>
-      <div className={`song-row ${active ? 'playing' : ''}`}>
+      <div className={`song-row ${active ? 'playing' : ''} ${recommendation ? 'recommendation-row' : ''}`}>
         {/* 1) Columna de número / play */}
         <button
           type="button"
@@ -175,6 +189,7 @@ export function SongRow({
         <div className="track-copy">
           <b>{track.title}</b>
           <span>{track.artist}</span>
+          {recommendation && 'reason' in track && <small className="recommendation-reason">{String(track.reason)}</small>}
         </div>
 
         {/* 4) Álbum */}
@@ -189,6 +204,8 @@ export function SongRow({
         >
           <Heart size={17} fill={liked ? 'currentColor' : 'none'} />
         </button>
+
+        {recommendation && <span className="recommendation-actions"><button type="button" className="icon-button" onClick={() => feedback('less')} aria-label={`Menos música como ${track.title}`} title="Menos de esto"><ThumbsDown size={15}/></button><button type="button" className="icon-button" onClick={() => feedback('exclude')} aria-label={`No recomendar ${track.title}`} title="No recomendar"><Ban size={15}/></button></span>}
 
         {/* 6) Duración */}
         <span className="duration">{track.duration ?? '—'}</span>

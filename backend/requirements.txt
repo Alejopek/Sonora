@@ -7,3 +7,5 @@ SQLAlchemy[asyncio]>=2.0.38
 asyncpg==0.30.0
 bcrypt==4.2.1
 PyJWT==2.10.1
+alembic==1.14.1
+psycopg[binary]==3.2.10

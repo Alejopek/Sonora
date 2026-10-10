@@ -27,6 +27,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend application source
 COPY backend/app ./app
+COPY backend/alembic.ini ./alembic.ini
+COPY backend/migrations ./migrations
 
 # Copy built frontend assets from stage 1
 COPY --from=frontend-builder /app/frontend/dist ./static
@@ -37,4 +39,4 @@ ENV PYTHONUNBUFFERED=1 \
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
+CMD ["sh", "-c", "alembic -c /app/alembic.ini upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]

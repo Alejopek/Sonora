@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Heart, Home, Library, Menu, Plus, Search } from 'lucide-react'
+import { BarChart3, Heart, Home, Library, Menu, Plus, Search, Sparkles } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { useAuthStore } from '../stores/auth-store'
@@ -8,7 +8,7 @@ import { createPlaylist, getPlaylists, type UserPlaylist } from '../services/api
 import { UserAvatar } from './UserAvatar'
 import { AccountMenu } from './AccountMenu'
 
-const nav = [{ to: '/', label: 'Inicio', icon: Home }, { to: '/search', label: 'Buscar', icon: Search }, { to: '/library', label: 'Biblioteca', icon: Library }, { to: '/favorites', label: 'Favoritos', icon: Heart }]
+const nav = [{ to: '/', label: 'Inicio', icon: Home }, { to: '/for-you', label: 'Para vos', icon: Sparkles }, { to: '/statistics', label: 'Estadísticas', icon: BarChart3 }, { to: '/search', label: 'Buscar', icon: Search }, { to: '/library', label: 'Biblioteca', icon: Library }, { to: '/favorites', label: 'Favoritos', icon: Heart }]
 
 export function Sidebar({ compact, onCompact }: { compact: boolean; onCompact: () => void }) {
   const [authOpen, setAuthOpen] = useState(false)

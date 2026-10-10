@@ -13,15 +13,12 @@ def _url(url: str) -> str:
 
 
 async def initialize_database() -> None:
-    """Create tables for the self-contained Compose deployment when DB is configured."""
+    """Configure persistence; schema changes are applied by Alembic before startup."""
     global engine, SessionLocal
     if not DATABASE_URL:
         return
     engine = create_async_engine(_url(DATABASE_URL), pool_pre_ping=True)
     SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
-    from app.models import Base
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
 
 
 async def close_database() -> None:

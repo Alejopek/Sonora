@@ -11,7 +11,12 @@ from app.schemas.account import Credentials, LibraryImport, PlaylistCreate, Play
 router = APIRouter(prefix='/api', tags=['account'])
 
 def track_data(track: TrackInput) -> dict:
-    return {'video_id': track.video_id, 'title': track.title, 'artist': track.artist, 'duration': track.duration, 'thumbnail_url': track.thumbnail_url}
+    return {
+        'video_id': track.video_id, 'title': track.title, 'artist': track.artist,
+        'artist_id': track.artist_id, 'album': track.album, 'album_id': track.album_id,
+        'genres': ','.join(dict.fromkeys(item.strip() for item in track.genres if item.strip())),
+        'duration': track.duration, 'thumbnail_url': track.thumbnail_url,
+    }
 
 async def owned_playlist(playlist_id: int, user: User, session: AsyncSession) -> Playlist:
     playlist = await session.scalar(select(Playlist).options(selectinload(Playlist.items)).where(Playlist.id == playlist_id, Playlist.user_id == user.id))

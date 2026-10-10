@@ -133,21 +133,24 @@ def lyrics_endpoint(video_id: str, title: str = Query(default='', max_length=200
         return {'lyrics': [], 'source': None, 'instrumental': False}
 
 @router.api_route('/stream/{video_id}', methods=['GET', 'HEAD'])
-def stream_endpoint(video_id: str, container: Literal['auto', 'mp4', 'webm'] = Query(default='auto')):
+def stream_endpoint(video_id: str, container: Literal['auto', 'mp4', 'webm'] = Query(default='auto'), attempt: int = Query(default=0, ge=0, le=1)):
     if not video_id.replace('-', '').replace('_', '').isalnum(): raise HTTPException(400, 'Identificador inválido.')
-    try:
-        return RedirectResponse(stream_url(video_id, container), status_code=307)
-    except Exception:
-        # ytmusicapi's signed URLs are preferred; yt-dlp remains a fallback for
-        # videos whose adaptive format data is not exposed.
-        logger.exception('No se pudo resolver el stream directo para %s; se prueba yt-dlp', video_id)
+    if attempt == 0:
+        try:
+            return RedirectResponse(stream_url(video_id, container), status_code=307)
+        except Exception:
+            # ytmusicapi's signed URLs are preferred; yt-dlp remains a fallback for
+            # videos whose adaptive format data is not exposed.
+            logger.exception('No se pudo resolver el stream directo para %s; se prueba yt-dlp', video_id)
     temp_cookie_path = None
     try:
         cmd = [
             sys.executable, '-m', 'yt_dlp',
             '--no-playlist',
-            '--extractor-args', 'youtube:player_client=android;player_skip=webpage,configs,js',
-            '--format', 'bestaudio/best'
+            '--extractor-args', f"youtube:player_client={'web_safari' if attempt else 'android'};player_skip=webpage,configs,js",
+            # Never fall back to a video container: the client uses <audio> and
+            # a progressive video format can be rejected even when it has audio.
+            '--format', 'bestaudio'
         ]
         
         cookie_file = os.getenv('YOUTUBE_COOKIES_FILE')
@@ -182,7 +185,7 @@ def stream_endpoint(video_id: str, container: Literal['auto', 'mp4', 'webm'] = Q
                 sys.executable, '-m', 'yt_dlp',
                 '--no-playlist',
                 '--extractor-args', 'youtube:player_client=android;player_skip=webpage,configs,js',
-                '--format', 'bestaudio/best'
+                '--format', 'bestaudio'
             ]
             if proxy:
                 fallback_cmd.extend(['--proxy', proxy])

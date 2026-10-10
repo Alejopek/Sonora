@@ -27,6 +27,8 @@ export function Player() {
     return probe.canPlayType('audio/webm; codecs="opus"') ? 'webm' as const : 'mp4' as const
   })
 
+  useEffect(() => setStreamAttempt(0), [s.currentTrack?.id])
+
   useEffect(() => {
     if (!audio.current) return
     audio.current.volume = s.volume
@@ -101,10 +103,18 @@ export function Player() {
       onPlaying={() => { s.setLoading(false); s.setError(null); if (!listening.current.started) { reportListening('started', true); const track = s.currentTrack; if (token && track) void recordHistory(savedTrack(track)).catch(() => undefined) } }}
       onCanPlay={() => s.setLoading(false)}
       onEnded={() => { reportListening('completed', true); s.next() }}
-      onError={() => { s.setLoading(false); s.setError('El stream no está disponible para esta canción.') }}
+      onError={() => {
+        if (streamAttempt === 0) {
+          s.setLoading(true)
+          setStreamAttempt(1)
+          return
+        }
+        s.setLoading(false)
+        s.setError('El stream no está disponible para esta canción.')
+      }}
     />
     <footer className="player">
-      {s.error && <div className="player-error" role="alert"><span>{s.error}</span><button onClick={() => { s.setError(null); s.setLoading(true); s.seek(0); setStreamAttempt((attempt) => attempt + 1) }} aria-label="Reintentar reproducción"><RotateCcw size={16}/></button><button onClick={() => s.setError(null)} aria-label="Cerrar aviso"><X size={17}/></button></div>}
+      {s.error && <div className="player-error" role="alert"><span>{s.error}</span><button onClick={() => { s.setError(null); s.setLoading(true); s.seek(0); setStreamAttempt((attempt) => attempt === 0 ? 1 : 0) }} aria-label="Reintentar reproducción"><RotateCcw size={16}/></button><button onClick={() => s.setError(null)} aria-label="Cerrar aviso"><X size={17}/></button></div>}
       <div className="player-track-area">
         <button className="now-track" onClick={() => setExpanded(true)}>
           <CoverImage src={s.currentTrack.thumbnail} alt=""/>

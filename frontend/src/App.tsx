@@ -10,7 +10,6 @@ import { Player } from './components/Player'
 import { HomePage } from './pages/HomePage'
 import { SearchPage } from './pages/SearchPage'
 import { LibraryPage } from './pages/LibraryPage'
-import { FavoritesPage } from './pages/FavoritesPage'
 import { ForYouPage } from './pages/ForYouPage'
 import { StatisticsPage } from './pages/StatisticsPage'
 import { usePlayerStore } from './stores/player-store'
@@ -74,7 +73,7 @@ function Shell() {
     <Sidebar compact={compact} onCompact={() => setCompact(!compact)}/>
     <main className="content">
       <header className="topbar"><div className="history-buttons"><button onClick={() => navigate(-1)}><ChevronLeft size={19}/></button><button onClick={() => navigate(1)}><ChevronRight size={19}/></button></div><div className="topbar-search" onClick={() => navigate('/search')}><Search size={17}/><span>Buscar en Sonora</span><kbd>⌘ K</kbd></div><button type="button" className="topbar-account-trigger" onClick={() => (user ? setAccountOpen(true) : setAuthOpen(true))} aria-label={user ? `Abrir menú de ${user.username}` : 'Iniciar sesión'} aria-expanded={user ? accountOpen : undefined} aria-controls={user ? 'mobile-account-menu' : undefined}><span>{user?.username ?? 'Invitado'}</span><UserAvatar name={user?.username} size={36}/></button></header>
-      <AnimatePresence mode="wait"><motion.div key={location.pathname} initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: .18 }}><Routes><Route path="/" element={<HomePage/>}/><Route path="/for-you" element={<ForYouPage/>}/><Route path="/statistics" element={<StatisticsPage/>}/><Route path="/search" element={<SearchPage/>}/><Route path="/library" element={<LibraryPage/>}/><Route path="/library/:playlistId" element={<LibraryPage/>}/><Route path="/favorites" element={<FavoritesPage/>}/><Route path="*" element={<HomePage/>}/></Routes></motion.div></AnimatePresence>
+      <AnimatePresence mode="wait"><motion.div key={location.pathname} initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: .18 }}><Routes><Route path="/" element={<HomePage/>}/><Route path="/for-you" element={<ForYouPage/>}/><Route path="/statistics" element={<StatisticsPage/>}/><Route path="/search" element={<SearchPage/>}/><Route path="/library" element={<LibraryPage/>}/><Route path="/library/:playlistId" element={<LibraryPage/>}/><Route path="*" element={<HomePage/>}/></Routes></motion.div></AnimatePresence>
     </main>
     <Player/>
     <MobileNav/>

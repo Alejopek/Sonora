@@ -1,4 +1,4 @@
-import { Heart, Library, LogOut, UserRound, X } from 'lucide-react'
+import { Library, LogOut, UserRound, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -85,7 +85,6 @@ export function AccountMenu({ user, onClose, onSignOut, mobile = false }: Accoun
       </div>
       <div className="account-menu-actions">
         <button type="button" onClick={() => goTo('/library')}><Library size={17} />Biblioteca</button>
-        <button type="button" onClick={() => goTo('/favorites')}><Heart size={17} />Favoritos</button>
         <button className="account-menu-signout" type="button" onClick={onSignOut}><LogOut size={17} />Cerrar sesión</button>
       </div>
     </motion.section>

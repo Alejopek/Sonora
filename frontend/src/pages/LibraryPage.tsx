@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ChevronLeft, Heart, ListMusic, Music2, Pencil, Play, Plus, Trash2 } from 'lucide-react'
+import { BarChart3, ChevronLeft, Heart, ListMusic, Music2, Pencil, Play, Plus, Trash2 } from 'lucide-react'
 import { SongRow } from '../components/SongRow'
 import { CoverImage } from '../components/CoverImage'
 import {
@@ -358,6 +358,11 @@ export function LibraryPage() {
                 <Plus size={16} /> Crear playlist
               </button>
             </div>
+
+            <button className="library-statistics-link" onClick={() => navigate('/statistics')}>
+              <BarChart3 size={17} />
+              <span>Ver estadísticas de escucha</span>
+            </button>
 
             {playlists.length > 0 || favorites.length > 0 ? (
               <div className="library-playlist-grid">

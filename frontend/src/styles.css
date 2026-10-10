@@ -275,6 +275,7 @@ body,.app-shell{background:#090d13}
 .library-page{max-width:1220px;margin:0 auto}
 .library-heading-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:28px}
 .library-heading-row h1{font:800 clamp(32px,4vw,44px)/1.05 Manrope,sans-serif;letter-spacing:-2px;margin:8px 0 6px}
+.library-statistics-link{display:none}
 .library-count-badge{display:inline-flex;align-items:center;gap:8px;color:#8c99ab;font-size:13px;font-weight:500}
 .library-count-badge span{display:inline-flex;align-items:center}
 .library-count-badge i{display:inline-block;width:4px;height:4px;border-radius:50%;background:#4b5869}
@@ -407,6 +408,8 @@ body,.app-shell{background:#090d13}
   .mobile-nav-link:hover{color:#dce5d5}
   .mobile-nav-link.active{color:var(--theme-accent);background:rgb(var(--theme-rgb) / .09)}
   .mobile-nav-link.active:before{position:absolute;top:-5px;left:calc(50% - 10px);width:20px;height:2px;border-radius:0 0 3px 3px;background:var(--theme-accent);box-shadow:0 0 12px rgb(var(--theme-rgb) / .65);content:''}
+  .library-statistics-link{display:inline-flex;align-items:center;gap:9px;margin:-10px 0 20px;padding:10px 13px;border:1px solid rgb(var(--theme-rgb) / .28);border-radius:9px;background:rgb(var(--theme-rgb) / .07);color:#dfe8d6;font-size:12px;font-weight:600}
+  .library-statistics-link svg{color:var(--theme-accent)}
   .app-shell>.content{padding-bottom:calc(76px + 58px + env(safe-area-inset-bottom) + 20px)}
   .app-shell>.player{bottom:calc(58px + env(safe-area-inset-bottom))}
 }

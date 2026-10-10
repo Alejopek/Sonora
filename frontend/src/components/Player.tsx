@@ -5,7 +5,7 @@ import * as Slider from '@radix-ui/react-slider'
 import { useNavigate } from 'react-router-dom'
 import { CoverImage } from './CoverImage'
 import { AddToPlaylistModal } from './AddToPlaylistModal'
-import { recordHistory, recordListeningEvent, streamUrl } from '../services/api'
+import { getSeededRecommendationQueue, recordHistory, recordListeningEvent, searchMusic, streamUrl } from '../services/api'
 import { fmt } from '../lib/format'
 import { savedTrack, usePlayerStore } from '../stores/player-store'
 import { useAuthStore } from '../stores/auth-store'
@@ -22,12 +22,33 @@ export function Player() {
   const [playlistModalOpen, setPlaylistModalOpen] = useState(false)
   const [streamAttempt, setStreamAttempt] = useState(0)
   const listening = useRef({ sessionId: '', trackId: '', listenedSeconds: 0, lastPosition: 0, lastReported: 0, started: false, finalized: false })
+  const endedTrackId = useRef<string | null>(null)
   const [audioContainer] = useState(() => {
     const probe = document.createElement('audio')
     return probe.canPlayType('audio/webm; codecs="opus"') ? 'webm' as const : 'mp4' as const
   })
 
-  useEffect(() => setStreamAttempt(0), [s.currentTrack?.id])
+  useEffect(() => { setStreamAttempt(0); endedTrackId.current = null }, [s.currentTrack?.id])
+
+  const refillQueue = async (track: NonNullable<typeof s.currentTrack>, continueAtTail: boolean) => {
+    try {
+      const candidates = token
+        ? (await getSeededRecommendationQueue(savedTrack(track))).tracks
+        : (await searchMusic(track.artist, 'songs')).songs
+      const state = usePlayerStore.getState()
+      if (continueAtTail && state.currentTrack?.id !== track.id) return
+      const alreadyQueued = new Set(state.queue.map((item) => item.id))
+      const nextTrack = candidates.find((item) => !alreadyQueued.has(item.id))
+      if (nextTrack) state.appendQueueTracks([nextTrack])
+      const updated = usePlayerStore.getState()
+      if (continueAtTail && updated.currentTrack?.id === track.id) updated.next()
+    } catch {
+      if (continueAtTail) {
+        const state = usePlayerStore.getState()
+        if (state.currentTrack?.id === track.id) state.next()
+      }
+    }
+  }
 
   useEffect(() => {
     if (!audio.current) return
@@ -102,7 +123,17 @@ export function Player() {
       onStalled={() => s.setLoading(true)}
       onPlaying={() => { s.setLoading(false); s.setError(null); if (!listening.current.started) { reportListening('started', true); const track = s.currentTrack; if (token && track) void recordHistory(savedTrack(track)).catch(() => undefined) } }}
       onCanPlay={() => s.setLoading(false)}
-      onEnded={() => { reportListening('completed', true); s.next() }}
+      onEnded={() => {
+        const track = s.currentTrack
+        if (!track || endedTrackId.current === track.id) return
+        endedTrackId.current = track.id
+        reportListening('completed', true)
+        const state = usePlayerStore.getState()
+        const atTail = state.currentIndex >= state.queue.length - 1
+        const repeatsCurrent = state.repeatMode === 'one'
+        if (!atTail || state.repeatMode === 'all' || repeatsCurrent) state.next()
+        if (!repeatsCurrent) void refillQueue(track, atTail && state.repeatMode !== 'all')
+      }}
       onError={() => {
         if (streamAttempt === 0) {
           s.setLoading(true)

@@ -13,7 +13,7 @@ from urllib.request import Request, urlopen
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import RedirectResponse, Response
 from app.schemas.music import SearchResponse, Track
-from app.services.youtube import search, song, stream_url
+from app.services.youtube import search, song, stream_url, track
 from app.services.youtube import client
 
 router = APIRouter(prefix='/api', tags=['music'])
@@ -226,7 +226,9 @@ def album_endpoint(album_id: str):
             item = track(raw)
             tracks.append(item.model_copy(update={'album': album_title, 'album_id': album_id, 'artist': item.artist if item.artist != 'Artista desconocido' else artist}))
         return {'id': album_id, 'title': album_title, 'artist': artist, 'thumbnail': (data.get('thumbnails') or [{}])[-1].get('url', ''), 'year': str(data.get('year') or '') or None, 'type': data.get('type'), 'tracks': tracks}
-    except Exception as exc: raise HTTPException(404, 'Álbum no encontrado.') from exc
+    except Exception as exc:
+        logger.exception('No se pudo cargar el álbum %s', album_id)
+        raise HTTPException(404, 'Álbum no encontrado.') from exc
 
 @router.get('/playlists/{playlist_id}')
 def playlist_endpoint(playlist_id: str):

@@ -275,20 +275,20 @@ def _streak(days: set[date], today: date) -> int:
 
 @router.get('/statistics')
 async def statistics(
-    range: str = Query(default='7d', pattern='^(today|7d|30d|all|custom)$'),
+    range_name: str = Query(default='7d', alias='range', pattern='^(today|7d|30d|all|custom)$'),
     start: date | None = None, end: date | None = None,
     user: User = Depends(current_user), session: AsyncSession = Depends(get_session),
 ):
-    start_day, end_day, label = _range_dates(range, start, end)
+    start_day, end_day, label = _range_dates(range_name, start, end)
     sessions_query = select(ListeningSession).where(ListeningSession.user_id == user.id)
     if start_day:
         sessions_query = sessions_query.where(ListeningSession.started_at >= datetime.combine(start_day, datetime.min.time(), tzinfo=timezone.utc), ListeningSession.started_at < datetime.combine(end_day + timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc))
-    sessions = (await session.scalars(sessions_query)).all() if range != 'all' else []
+    sessions = (await session.scalars(sessions_query)).all() if range_name != 'all' else []
     daily_query = select(ListeningDaily).where(ListeningDaily.user_id == user.id, ListeningDaily.day <= end_day)
     if start_day:
         daily_query = daily_query.where(ListeningDaily.day >= start_day)
     daily = (await session.scalars(daily_query.order_by(ListeningDaily.day))).all()
-    if range == 'all':
+    if range_name == 'all':
         listened = sum(row.listened_seconds for row in daily)
         plays = sum(row.play_count for row in daily)
         entities = (await session.scalars(select(UserEntityAffinity).where(UserEntityAffinity.user_id == user.id))).all()
@@ -328,12 +328,12 @@ async def statistics(
         previous_end = start_day - timedelta(days=1)
         previous_seconds = await session.scalar(select(func.coalesce(func.sum(ListeningDaily.listened_seconds), 0)).where(ListeningDaily.user_id == user.id, ListeningDaily.day >= previous_start, ListeningDaily.day <= previous_end))
     def metric_track(row):
-        if range == 'all':
+        if range_name == 'all':
             return {**track_payload(row), 'listenedSeconds': row.listened_seconds, 'plays': row.play_count}
         rows = grouped_tracks[row.video_id]
         return {**track_payload(row), 'listenedSeconds': sum(item.listened_seconds for item in rows), 'plays': sum(1 for item in rows if item.counted_play)}
     def metric_entity(item, kind):
-        if range == 'all':
+        if range_name == 'all':
             return {'name': item.label, 'listenedSeconds': item.listened_seconds, 'plays': item.play_count}
         name, rows = item
         return {'name': name, 'listenedSeconds': sum(row.listened_seconds for row in rows), 'plays': sum(1 for row in rows if row.counted_play)}
@@ -342,6 +342,6 @@ async def statistics(
         'totals': {'listenedSeconds': listened, 'plays': plays, 'artists': artists, 'albums': albums, 'genres': genres, 'streakDays': _streak(day_set, end_day)},
         'comparison': None if previous_seconds is None else {'previousListenedSeconds': int(previous_seconds), 'changePercent': None if not previous_seconds else round(((listened - previous_seconds) / previous_seconds) * 100)},
         'activity': activity,
-        'hours': [{'hour': hour, 'listenedSeconds': hours[hour] if range == 'all' else sum(row.listened_seconds for row in sessions if row.started_at.hour == hour)} for hour in sorted(hours)],
+        'hours': [{'hour': hour, 'listenedSeconds': hours[hour] if range_name == 'all' else sum(row.listened_seconds for row in sessions if row.started_at.hour == hour)} for hour in sorted(hours)],
         'top': {'tracks': [metric_track(row) for row in top_tracks], **{f'{kind}s': [metric_entity(item, kind) for item in items] for kind, items in top_entities.items()}},
     }

@@ -2,6 +2,8 @@ import unittest
 
 from app.services.listening import early_skip, meaningful_play, progress_delta
 from app.services.recommendations import rank_and_diversify
+from app.main import app
+from app.routes.insights import _range_dates
 
 
 def candidate(id, artist, album, genre):
@@ -19,6 +21,20 @@ class ListeningSignalTests(unittest.TestCase):
         self.assertTrue(meaningful_play(30, 180))
         self.assertTrue(early_skip(7, 240))
         self.assertFalse(early_skip(20, 240))
+
+    def test_statistics_periods_resolve_to_dates_without_shadowing_iteration(self):
+        start, end, label = _range_dates('today', None, None)
+        self.assertEqual(start, end)
+        self.assertEqual(label, 'Hoy')
+        start, end, label = _range_dates('30d', None, None)
+        self.assertEqual((end - start).days, 29)
+        self.assertEqual(label, 'Últimos 30 días')
+        self.assertIsNone(_range_dates('all', None, None)[0])
+
+    def test_statistics_query_parameter_remains_named_range(self):
+        operation = app.openapi()['paths']['/api/statistics']['get']
+        query_names = {parameter['name'] for parameter in operation['parameters'] if parameter['in'] == 'query'}
+        self.assertIn('range', query_names)
 
 
 class RecommendationRankingTests(unittest.TestCase):

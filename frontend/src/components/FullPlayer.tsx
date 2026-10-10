@@ -18,6 +18,7 @@ import {
   X,
 } from 'lucide-react'
 import * as Slider from '@radix-ui/react-slider'
+import { useNavigate } from 'react-router-dom'
 import { CoverImage } from './CoverImage'
 import { AddToPlaylistModal } from './AddToPlaylistModal'
 import { SongRow } from './SongRow'
@@ -26,6 +27,7 @@ import { usePlayerStore } from '../stores/player-store'
 import { getLyrics, type LyricLine } from '../services/api'
 
 export function FullPlayer({ onClose, onOpenAuth }: { onClose: () => void; onOpenAuth?: () => void }) {
+  const navigate = useNavigate()
   const s = usePlayerStore()
   const [lyrics, setLyrics] = useState<LyricLine[]>([])
   const [lyricsTrackId, setLyricsTrackId] = useState<string | null>(null)
@@ -173,7 +175,7 @@ export function FullPlayer({ onClose, onOpenAuth }: { onClose: () => void; onOpe
             <span className="music-kicker">AHORA SUENA</span>
             <h1>{s.currentTrack.title}</h1>
             <p>{s.currentTrack.artist}</p>
-            <small>{s.currentTrack.album}</small>
+            <button type="button" className="full-album-link" onClick={() => navigate(s.currentTrack?.albumId ? `/albums/${encodeURIComponent(s.currentTrack.albumId)}` : `/search?q=${encodeURIComponent(s.currentTrack?.album || `${s.currentTrack?.title ?? ''} ${s.currentTrack?.artist ?? ''}`)}`)} aria-label={s.currentTrack.album ? `Abrir disco ${s.currentTrack.album}` : 'Buscar el disco de esta canción'}>{s.currentTrack.album || 'Ver disco'}</button>
 
             <div className="music-track-actions">
               <button

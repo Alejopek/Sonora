@@ -110,7 +110,7 @@ export function Player() {
           <CoverImage src={s.currentTrack.thumbnail} alt=""/>
           <span><b>{s.currentTrack.title}</b><small>{s.currentTrack.artist}</small></span>
         </button>
-        {s.currentTrack.album && <button type="button" className="player-album-link" title={`Abrir ${s.currentTrack.album}`} onClick={() => navigate(s.currentTrack?.albumId ? `/albums/${encodeURIComponent(s.currentTrack.albumId)}` : `/search?q=${encodeURIComponent(s.currentTrack?.album ?? '')}`)}>{s.currentTrack.album}</button>}
+        <button type="button" className="player-album-link" title={s.currentTrack.album ? `Abrir ${s.currentTrack.album}` : 'Buscar el disco de esta canción'} aria-label={s.currentTrack.album ? `Abrir disco ${s.currentTrack.album}` : 'Buscar el disco de esta canción'} onClick={() => navigate(s.currentTrack?.albumId ? `/albums/${encodeURIComponent(s.currentTrack.albumId)}` : `/search?q=${encodeURIComponent(s.currentTrack?.album || `${s.currentTrack?.title ?? ''} ${s.currentTrack?.artist ?? ''}`)}`)}>{s.currentTrack.album || 'Ver disco'}</button>
         <button
           type="button"
           className={`like ${s.isFavorite(s.currentTrack.id) ? 'liked' : ''}`}

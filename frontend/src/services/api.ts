@@ -1,4 +1,4 @@
-import type { SearchResponse, Track } from '../types/music'
+import type { Album, AlbumDetail, SearchResponse, Track } from '../types/music'
 
 const API = import.meta.env.VITE_API_URL ?? '/api'
 const authToken = () => {
@@ -7,6 +7,7 @@ const authToken = () => {
 }
 const DEV_MOCK_TOKEN = 'dev-mock-session-token'
 const devMockStorage = {
+  albumFavorites: [] as Album[],
   playlists: [
     {
       id: 1,
@@ -39,7 +40,16 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     if (path === '/favorites' || path === '/history') {
       return [] as T
     }
+    if (path === '/favorites/albums' && (!init.method || init.method === 'GET')) return [...devMockStorage.albumFavorites] as T
+    if (path === '/favorites/albums/toggle' && init.method === 'POST') {
+      const album = JSON.parse(String(init.body || '{}')) as Album
+      const index = devMockStorage.albumFavorites.findIndex((item) => item.id === album.id)
+      if (index >= 0) { devMockStorage.albumFavorites.splice(index, 1); return { liked: false } as T }
+      devMockStorage.albumFavorites.unshift(album)
+      return { liked: true } as T
+    }
     if (path === '/recommendations') return { date: new Date().toISOString().slice(0, 10), title: 'Mix diario', tracks: [], isEmpty: true } as T
+    if (path === '/recommendations/albums') return { albums: [] } as T
     if (path === '/statistics') return emptyStatistics as T
     if (path === '/library/import') {
       return { ok: true } as T
@@ -56,10 +66,15 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return response.status === 204 ? undefined as T : response.json() as Promise<T>
 }
 export const artworkUrl = (url: string) => `${API}/artwork?url=${encodeURIComponent(url)}`
-export async function searchMusic(query: string): Promise<SearchResponse> {
-  const response = await fetch(`${API}/search?q=${encodeURIComponent(query)}`)
+export async function searchMusic(query: string, filter: 'all' | 'songs' | 'albums' = 'all'): Promise<SearchResponse> {
+  const response = await fetch(`${API}/search?q=${encodeURIComponent(query)}&filter=${filter}`)
   if (!response.ok) throw new Error('No se pudo completar la búsqueda.')
   return response.json() as Promise<SearchResponse>
+}
+export async function getAlbum(id: string): Promise<AlbumDetail> {
+  const response = await fetch(`${API}/albums/${encodeURIComponent(id)}`)
+  if (!response.ok) throw new Error('No se pudo cargar el álbum.')
+  return response.json() as Promise<AlbumDetail>
 }
 export async function getSong(id: string): Promise<Track> {
   const response = await fetch(`${API}/songs/${encodeURIComponent(id)}`)
@@ -84,6 +99,9 @@ export type Session = { token: string; user: SessionUser }
 export type SavedTrack = { videoId: string; title: string; artist: string; artistId?: string; album?: string; albumId?: string; genres?: string[]; duration?: number; thumbnailUrl: string }
 export type SavedTrackResponse = SavedTrack & { id: number; added_at?: string; played_at?: string }
 export type UserPlaylist = { id: number; title: string; description: string; created_at: string; items: SavedTrackResponse[] }
+export const toggleRemoteAlbumFavorite = (album: Album) => request<{ liked: boolean }>('/favorites/albums/toggle', { method: 'POST', body: JSON.stringify(album) })
+export const getAlbumFavorites = () => request<Album[]>('/favorites/albums')
+export const getRecommendedAlbums = () => request<{ albums: Album[] }>('/recommendations/albums')
 export const login = (email: string, password: string) => request<Session>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
 export const register = (username: string, email: string, password: string) => request<Session>('/auth/register', { method: 'POST', body: JSON.stringify({ username, email, password }) })
 export const getMe = () => request<SessionUser>('/auth/me')
@@ -97,7 +115,7 @@ export const updatePlaylist = (id: number, title: string, description = '') => r
 export const deletePlaylist = (id: number) => request<void>(`/playlists/${id}`, { method: 'DELETE' })
 export const addPlaylistTrack = (id: number, track: SavedTrack) => request<UserPlaylist>(`/playlists/${id}/items`, { method: 'POST', body: JSON.stringify(track) })
 export const removePlaylistTrack = (playlistId: number, itemId: number) => request<void>(`/playlists/${playlistId}/items/${itemId}`, { method: 'DELETE' })
-export const importLocalLibrary = (favorites: SavedTrack[], history: SavedTrack[]) => request<{ ok: boolean }>('/library/import', { method: 'POST', body: JSON.stringify({ favorites, history }) })
+export const importLocalLibrary = (favorites: SavedTrack[], history: SavedTrack[], favoriteAlbums: Album[] = []) => request<{ ok: boolean }>('/library/import', { method: 'POST', body: JSON.stringify({ favorites, history, favoriteAlbums }) })
 export type ListeningEvent = { sessionId: string; event: 'started' | 'progress' | 'completed' | 'skipped'; track: SavedTrack; listenedSeconds: number }
 export const recordListeningEvent = (event: ListeningEvent) => request<{ accepted: boolean }>('/listening/events', { method: 'POST', body: JSON.stringify(event) })
 export type Recommendation = Track & { reason: string; score: number }

@@ -30,6 +30,12 @@ class TrackInput(BaseModel):
     def split_stored_genres(cls, value):
         return value.split(',') if isinstance(value, str) else value
 
+class AlbumInput(BaseModel):
+    id: str = Field(min_length=1, max_length=128)
+    title: str = Field(min_length=1, max_length=300)
+    artist: str = Field(default='', max_length=300)
+    thumbnail: str = Field(default='', max_length=5000)
+
 class TrackOut(TrackInput):
     id: int; added_at: datetime | None = None; played_at: datetime | None = None
     model_config = {'from_attributes': True, 'populate_by_name': True}
@@ -50,6 +56,8 @@ class ReorderInput(BaseModel):
 class LibraryImport(BaseModel):
     favorites: list[TrackInput] = []
     history: list[TrackInput] = []
+    favorite_albums: list[AlbumInput] = Field(default_factory=list, alias='favoriteAlbums')
+    model_config = {'populate_by_name': True}
 
 
 class PlaybackEvent(BaseModel):

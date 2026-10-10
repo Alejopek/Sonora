@@ -2,5 +2,6 @@ export type Track = { id: string; title: string; artist: string; artistId?: stri
 export type SearchResponse = { songs: Track[]; artists: Artist[]; albums: Album[]; playlists: Playlist[] }
 export type Artist = { id: string; name: string; thumbnail: string; subscribers?: string }
 export type Album = { id: string; title: string; artist: string; thumbnail: string; year?: string; type?: string }
+export type AlbumDetail = Album & { tracks: Track[] }
 export type Playlist = { id: string; title: string; author: string; thumbnail: string; count?: string }
 export type RepeatMode = 'off' | 'all' | 'one'

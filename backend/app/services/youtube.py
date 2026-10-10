@@ -18,14 +18,14 @@ def track(data: dict) -> Track:
     album = data.get('album') or {}
     return Track(id=data.get('videoId', ''), title=data.get('title', 'Sin título'), artist=', '.join(a.get('name', '') for a in artists) or data.get('author', 'Artista desconocido'), artistId=artists[0].get('id') if artists else None, album=album.get('name', '') if isinstance(album, dict) else '', albumId=album.get('id') if isinstance(album, dict) else None, thumbnail=thumb(data), duration=data.get('duration'), durationSeconds=data.get('duration_seconds'), explicit=bool(data.get('isExplicit')))
 
-def search(query: str):
+def search(query: str, search_filter: str = 'all'):
     # A filtered query deliberately avoids YouTube Music's fragile "top result"
     # parser, which can change independently from the regular result schema.
     music = client()
-    song_results = music.search(query, filter='songs', limit=12)
-    artist_results = music.search(query, filter='artists', limit=6)
-    album_results = music.search(query, filter='albums', limit=6)
-    playlist_results = music.search(query, filter='playlists', limit=6)
+    song_results = music.search(query, filter='songs', limit=12) if search_filter in ('all', 'songs') else []
+    artist_results = music.search(query, filter='artists', limit=6) if search_filter == 'all' else []
+    album_results = music.search(query, filter='albums', limit=12) if search_filter in ('all', 'albums') else []
+    playlist_results = music.search(query, filter='playlists', limit=6) if search_filter == 'all' else []
     songs = [track(item) for item in song_results if item.get('videoId')]
     artists = [Artist(id=item.get('browseId', ''), name=item.get('artist', item.get('title', 'Artista')), thumbnail=thumb(item), subscribers=str(item['subscribers']) if item.get('subscribers') is not None else None) for item in artist_results]
     albums = []
@@ -34,6 +34,24 @@ def search(query: str):
         albums.append(Album(id=item.get('browseId', ''), title=item.get('title', ''), artist=', '.join(a.get('name', '') for a in artist_data), thumbnail=thumb(item), year=str(item['year']) if item.get('year') is not None else None, type=item.get('type')))
     playlists = [Playlist(id=item.get('browseId', ''), title=item.get('title', ''), author=item.get('author', ''), thumbnail=thumb(item), count=str(item['itemCount']) if item.get('itemCount') is not None else None) for item in playlist_results]
     return songs, artists, albums, playlists
+
+def album_candidates(queries: list[str]) -> list[dict]:
+    music = client()
+    albums = []
+    for query in queries[:5]:
+        if not query.strip():
+            continue
+        try:
+            for item in music.search(query, filter='albums', limit=8):
+                artists = item.get('artists') or []
+                albums.append({'id': item.get('browseId', ''), 'title': item.get('title', ''), 'artist': ', '.join(a.get('name', '') for a in artists), 'thumbnail': thumb(item), 'year': str(item['year']) if item.get('year') is not None else None, 'type': item.get('type')})
+        except Exception:
+            continue
+    unique = {}
+    for album in albums:
+        if album['id']:
+            unique.setdefault(album['id'], album)
+    return list(unique.values())
 
 def song(video_id: str) -> Track:
     details = client().get_song(video_id).get('videoDetails', {})

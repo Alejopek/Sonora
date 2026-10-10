@@ -16,8 +16,9 @@ from app.models import (
     RecommendationExclusion, RecommendationPreference, User, UserEntityAffinity,
     UserTrackAffinity,
 )
-from app.schemas.account import PlaybackEvent, RecommendationFeedback, RecommendationPreferenceInput, TrackInput
+from app.schemas.account import AlbumInput, PlaybackEvent, RecommendationFeedback, RecommendationPreferenceInput, TrackInput
 from app.services.recommendations import genre_list, lastfm_artist_tags, rank_and_diversify, serialise_genres, track_payload, youtube_candidates
+from app.services.youtube import album_candidates
 from app.services.listening import early_skip, meaningful_play, progress_delta
 
 router = APIRouter(prefix='/api', tags=['recommendations and statistics'])
@@ -162,6 +163,44 @@ async def _profile(session: AsyncSession, user_id: int):
     return by_type, tracks, exclusions, favorites
 
 
+@router.get('/favorites/albums')
+async def album_favorites(user: User = Depends(current_user), session: AsyncSession = Depends(get_session)):
+    rows = (await session.scalars(select(UserEntityAffinity).where(UserEntityAffinity.user_id == user.id, UserEntityAffinity.entity_type == 'album_like').order_by(UserEntityAffinity.label))).all()
+    return [{'id': row.entity_key, 'title': row.label, 'artist': '', 'thumbnail': ''} for row in rows]
+
+
+@router.post('/favorites/albums/toggle')
+async def toggle_album_favorite(data: AlbumInput, user: User = Depends(current_user), session: AsyncSession = Depends(get_session)):
+    row = await session.scalar(select(UserEntityAffinity).where(UserEntityAffinity.user_id == user.id, UserEntityAffinity.entity_type == 'album_like', UserEntityAffinity.entity_key == data.id))
+    if row is None:
+        session.add(UserEntityAffinity(user_id=user.id, entity_type='album_like', entity_key=data.id, label=data.title, play_count=1, affinity_score=1))
+        liked = True
+    else:
+        await session.delete(row)
+        liked = False
+    await session.execute(delete(DailyMix).where(DailyMix.user_id == user.id, DailyMix.mix_date == datetime.now(timezone.utc).date()))
+    await session.commit()
+    return {'liked': liked}
+
+
+@router.get('/recommendations/albums')
+async def recommended_albums(user: User = Depends(current_user), session: AsyncSession = Depends(get_session)):
+    by_type, _, _, _ = await _profile(session, user.id)
+    artist_rows = (await session.scalars(select(UserEntityAffinity).where(UserEntityAffinity.user_id == user.id, UserEntityAffinity.entity_type == 'artist').order_by(UserEntityAffinity.affinity_score.desc()).limit(4))).all()
+    album_like_rows = (await session.scalars(select(UserEntityAffinity).where(UserEntityAffinity.user_id == user.id, UserEntityAffinity.entity_type == 'album_like').order_by(UserEntityAffinity.affinity_score.desc()).limit(4))).all()
+    album_rows = (await session.scalars(select(UserEntityAffinity).where(UserEntityAffinity.user_id == user.id, UserEntityAffinity.entity_type == 'album').order_by(UserEntityAffinity.affinity_score.desc()).limit(3))).all()
+    queries = [row.label for row in album_like_rows] + [row.label for row in artist_rows] + [row.label for row in album_rows]
+    if not queries:
+        queries = ['indie albums', 'electronic albums', 'popular albums']
+    candidates = await asyncio.to_thread(album_candidates, queries)
+    liked_ids = set(by_type['album_like'])
+    for candidate in candidates:
+        artist_score = sum(score for artist, score in by_type['artist'].items() if artist and artist in candidate['artist'].casefold())
+        candidate['score'] = (400 if candidate['id'] in liked_ids else 0) + artist_score + by_type['album'].get(candidate['title'].casefold(), 0)
+    candidates.sort(key=lambda item: (-item['score'], item['artist'].casefold(), item['title'].casefold()))
+    return {'albums': candidates[:12]}
+
+
 async def _create_mix(session: AsyncSession, user: User, mix_day: date) -> DailyMix:
     by_type, affinity_tracks, exclusions, favorites = await _profile(session, user.id)
     preference = await session.get(RecommendationPreference, user.id)
@@ -179,6 +218,7 @@ async def _create_mix(session: AsyncSession, user: User, mix_day: date) -> Daily
     ranked = rank_and_diversify(
         candidates, artist_scores=by_type['artist'], genre_scores=by_type['genre'],
         track_scores={row.video_id: row.affinity_score for row in affinity_tracks},
+        album_scores={**by_type['album'], **{key: score * 3 for key, score in by_type['album_like'].items()}},
         skipped_tracks={row.video_id for row in affinity_tracks if row.skipped_count > row.play_count},
         excluded_tracks=exclusions, favorite_tracks=favorites, limit=32,
     )
@@ -256,6 +296,7 @@ async def seeded_recommendation_queue(track: TrackInput, user: User = Depends(cu
     ranked = rank_and_diversify(
         candidates, artist_scores=by_type['artist'], genre_scores=by_type['genre'],
         track_scores={row.video_id: row.affinity_score for row in affinity_tracks},
+        album_scores={**by_type['album'], **{key: score * 3 for key, score in by_type['album_like'].items()}},
         skipped_tracks={row.video_id for row in affinity_tracks if row.skipped_count > row.play_count},
         excluded_tracks=exclusions | {track.video_id}, favorite_tracks=favorites, limit=17,
     )

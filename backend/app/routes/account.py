@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 
 from app.auth import create_token, current_user, hash_password, verify_password
 from app.database import get_session
-from app.models import Favorite, History, Playlist, PlaylistItem, User
+from app.models import Favorite, History, Playlist, PlaylistItem, User, UserEntityAffinity
 from app.schemas.account import Credentials, LibraryImport, PlaylistCreate, PlaylistOut, PlaylistUpdate, ReorderInput, TokenOut, TrackInput, TrackOut, UserOut
 
 router = APIRouter(prefix='/api', tags=['account'])
@@ -108,4 +108,8 @@ async def import_library(data: LibraryImport, user: User = Depends(current_user)
         exists = await session.scalar(select(Favorite.id).where(Favorite.user_id == user.id, Favorite.video_id == track.video_id))
         if not exists: session.add(Favorite(user_id=user.id, **track_data(track)))
     for track in data.history[:30]: session.add(History(user_id=user.id, **track_data(track)))
+    for album in data.favorite_albums:
+        exists = await session.scalar(select(UserEntityAffinity.id).where(UserEntityAffinity.user_id == user.id, UserEntityAffinity.entity_type == 'album_like', UserEntityAffinity.entity_key == album.id))
+        if not exists:
+            session.add(UserEntityAffinity(user_id=user.id, entity_type='album_like', entity_key=album.id, label=album.title, play_count=1, affinity_score=1))
     await session.commit(); return {'ok': True}

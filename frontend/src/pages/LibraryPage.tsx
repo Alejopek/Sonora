@@ -17,6 +17,7 @@ import { useAuthStore } from '../stores/auth-store'
 import { usePlayerStore } from '../stores/player-store'
 import { fmt } from '../lib/format'
 import type { Track } from '../types/music'
+import { AlbumCard } from '../components/AlbumCard'
 
 const asTrack = (track: UserPlaylist['items'][number]): Track => ({
   id: track.videoId,
@@ -82,6 +83,7 @@ export function LibraryPage() {
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
   const favorites = usePlayerStore((state) => state.favorites)
+  const favoriteAlbums = usePlayerStore((state) => state.favoriteAlbums)
   const playTrack = usePlayerStore((state) => state.playTrack)
   const [playlists, setPlaylists] = useState<UserPlaylist[]>([])
   const [loading, setLoading] = useState(true)
@@ -489,6 +491,7 @@ export function LibraryPage() {
                 </button>
               </div>
             )}
+            {favoriteAlbums.length > 0 && <section className="section library-liked-albums"><div className="section-title"><h2>Discos que te gustan</h2></div><div className="album-result-grid">{favoriteAlbums.map((album) => <AlbumCard album={album} key={album.id}/>)}</div></section>}
           </div>
         )}
       </section>

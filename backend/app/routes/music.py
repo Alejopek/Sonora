@@ -64,9 +64,9 @@ def _is_artwork_host(hostname: str) -> bool:
     return any(hostname == domain or hostname.endswith(f'.{domain}') for domain in ('googleusercontent.com', 'ytimg.com', 'ggpht.com'))
 
 @router.get('/search', response_model=SearchResponse)
-def search_endpoint(q: str = Query(min_length=2, max_length=120)):
+def search_endpoint(q: str = Query(min_length=2, max_length=120), filter: Literal['all', 'songs', 'albums'] = Query(default='all')):
     try:
-        songs, artists, albums, playlists = search(q)
+        songs, artists, albums, playlists = search(q, filter)
         return SearchResponse(songs=songs, artists=artists, albums=albums, playlists=playlists)
     except Exception as exc:
         raise HTTPException(502, 'YouTube Music no respondió correctamente.') from exc
@@ -216,7 +216,16 @@ def artist_endpoint(artist_id: str):
 def album_endpoint(album_id: str):
     try:
         data = client().get_album(album_id)
-        return {'id': album_id, 'title': data.get('title', ''), 'artists': data.get('artists', []), 'thumbnails': data.get('thumbnails', []), 'tracks': data.get('tracks', [])}
+        artists = data.get('artists') or []
+        artist = ', '.join(item.get('name', '') for item in artists)
+        album_title = data.get('title', '')
+        tracks = []
+        for raw in data.get('tracks') or []:
+            if not raw.get('videoId'):
+                continue
+            item = track(raw)
+            tracks.append(item.model_copy(update={'album': album_title, 'album_id': album_id, 'artist': item.artist if item.artist != 'Artista desconocido' else artist}))
+        return {'id': album_id, 'title': album_title, 'artist': artist, 'thumbnail': (data.get('thumbnails') or [{}])[-1].get('url', ''), 'year': str(data.get('year') or '') or None, 'type': data.get('type'), 'tracks': tracks}
     except Exception as exc: raise HTTPException(404, 'Álbum no encontrado.') from exc
 
 @router.get('/playlists/{playlist_id}')

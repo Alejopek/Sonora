@@ -50,7 +50,7 @@ def _candidate_key(candidate: dict) -> tuple[str, str]:
 
 def rank_and_diversify(
     candidates: list[dict],
-    *, artist_scores: dict[str, int], genre_scores: dict[str, int], track_scores: dict[str, int],
+    *, artist_scores: dict[str, int], genre_scores: dict[str, int], track_scores: dict[str, int], album_scores: dict[str, int] | None = None,
     skipped_tracks: set[str], excluded_tracks: set[str], favorite_tracks: set[str], now: datetime | None = None,
     familiar_ratio: float = .7, limit: int = 32,
 ) -> list[dict]:
@@ -66,7 +66,10 @@ def rank_and_diversify(
     for candidate in unique.values():
         artist = candidate.get('artist', '').casefold()
         genres = genre_list(candidate.get('genres'))
-        known_score = track_scores.get(candidate['id'], 0) + artist_scores.get(artist, 0)
+        album = candidate.get('album', '').casefold()
+        album_id = candidate.get('albumId') or ''
+        album_score = (album_scores or {}).get(album_id, 0) + (album_scores or {}).get(album, 0)
+        known_score = track_scores.get(candidate['id'], 0) + artist_scores.get(artist, 0) + album_score
         genre_score = max((genre_scores.get(item, 0) for item in genres), default=0)
         skip_penalty = 120 if candidate['id'] in skipped_tracks else 0
         favorite_bonus = 55 if candidate['id'] in favorite_tracks else 0

@@ -99,11 +99,13 @@ backend/       FastAPI
 
 La API disponible es:
 
-- `GET /api/search?q=` — canciones, artistas, álbumes y playlists normalizados.
+- `GET /api/search?q=&filter=all|songs|albums` — búsqueda mixta o filtrada de canciones y álbumes.
 - `GET /api/songs/{video_id}` — metadata de una canción.
 - `GET /api/stream/{video_id}` — URL temporal de audio resuelta por `yt-dlp`.
 - `GET /api/artists/{artist_id}` — detalle normalizado de artista.
 - `GET /api/albums/{album_id}` — detalle y tracks de álbum.
+- `GET /api/recommendations/albums` — discos sugeridos a partir de afinidades de escucha y discos favoritos.
+- `GET /api/favorites/albums` y `POST /api/favorites/albums/toggle` — consulta y cambio de discos favoritos autenticados.
 - `GET /api/playlists/{playlist_id}` — detalle y tracks de playlist.
 - `GET /api/recommendations` y `/api/recommendations/queue` — mix diario persistente y cola personalizada.
 - `POST /api/recommendations/queue` — cola personalizada tomando la pista seleccionada como semilla.

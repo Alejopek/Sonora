@@ -12,18 +12,20 @@ import {
 } from 'lucide-react'
 import { CoverImage } from '../components/CoverImage'
 import { picks, moodCategories } from '../lib/data'
-import { getDailyMix } from '../services/api'
+import { getDailyMix, getRecommendedAlbums, searchMusic } from '../services/api'
 import { usePlayerStore } from '../stores/player-store'
 import { useAuthStore } from '../stores/auth-store'
 import { Section } from '../components/Section'
 import { SongRow } from '../components/SongRow'
 import type { Track } from '../types/music'
+import { AlbumCard } from '../components/AlbumCard'
 
 export function HomePage() {
   const { playTrack, history, favorites, currentTrack, isPlaying, setPlaying, addToQueue } = usePlayerStore()
   const { user } = useAuthStore()
   const token = useAuthStore((state) => state.token)
   const { data: personalMix } = useQuery({ queryKey: ['daily-mix'], queryFn: getDailyMix, enabled: Boolean(token), staleTime: 5 * 60_000, retry: false })
+  const { data: albumRecommendations } = useQuery({ queryKey: ['recommended-albums', token ? 'personal' : 'popular'], queryFn: async () => { if (token) { try { const albums = (await getRecommendedAlbums()).albums; if (albums.length) return albums } catch { /* Keep album discovery available if personalized data is unavailable. */ } } return (await searchMusic('indie alternative albums', 'albums')).albums }, staleTime: 10 * 60_000, retry: false })
   const personalTracks = personalMix?.tracks ?? []
 
   // Carousel de destacados
@@ -346,6 +348,13 @@ export function HomePage() {
             </button>
           ))}
           {!personalTracks.length && user && <p className="personal-recommendation-empty">Estamos reuniendo tus primeras señales. Mientras tanto, estas canciones son una selección inicial.</p>}
+        </div>
+      </Section>
+
+      <Section title="Discos para descubrir">
+        <div className="album-result-grid home-album-recommendations">
+          {(albumRecommendations ?? []).slice(0, 8).map((album) => <AlbumCard album={album} key={album.id}/>)}
+          {user && !albumRecommendations?.length && <p className="personal-recommendation-empty">Estamos reuniendo señales para recomendarte discos.</p>}
         </div>
       </Section>
 

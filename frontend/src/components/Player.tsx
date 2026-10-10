@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { Heart, ListMusic, ListPlus, LoaderCircle, Pause, Play, Repeat, RotateCcw, Shuffle, SkipBack, SkipForward, Volume2, VolumeX, X } from 'lucide-react'
 import * as Slider from '@radix-ui/react-slider'
+import { useNavigate } from 'react-router-dom'
 import { CoverImage } from './CoverImage'
 import { AddToPlaylistModal } from './AddToPlaylistModal'
 import { recordHistory, recordListeningEvent, streamUrl } from '../services/api'
@@ -12,6 +13,7 @@ import { Queue } from './Queue'
 import { FullPlayer } from './FullPlayer'
 
 export function Player() {
+  const navigate = useNavigate()
   const audio = useRef<HTMLAudioElement>(null)
   const s = usePlayerStore()
   const token = useAuthStore((state) => state.token)
@@ -108,6 +110,7 @@ export function Player() {
           <CoverImage src={s.currentTrack.thumbnail} alt=""/>
           <span><b>{s.currentTrack.title}</b><small>{s.currentTrack.artist}</small></span>
         </button>
+        {s.currentTrack.album && <button type="button" className="player-album-link" title={`Abrir ${s.currentTrack.album}`} onClick={() => navigate(s.currentTrack?.albumId ? `/albums/${encodeURIComponent(s.currentTrack.albumId)}` : `/search?q=${encodeURIComponent(s.currentTrack?.album ?? '')}`)}>{s.currentTrack.album}</button>}
         <button
           type="button"
           className={`like ${s.isFavorite(s.currentTrack.id) ? 'liked' : ''}`}

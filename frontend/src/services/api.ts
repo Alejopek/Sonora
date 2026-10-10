@@ -106,7 +106,8 @@ export const login = (email: string, password: string) => request<Session>('/aut
 export const register = (username: string, email: string, password: string) => request<Session>('/auth/register', { method: 'POST', body: JSON.stringify({ username, email, password }) })
 export const getMe = () => request<SessionUser>('/auth/me')
 export type LastFmStatus = { configured: boolean; connected: boolean; username: string | null }
-export type LastFmMoodProfile = { username: string; tags: string[]; recentArtists: string[]; bpmAvailable: false }
+export type LastFmRecentTrack = { title: string; artist: string; album: string; url: string; thumbnail: string; playedAt: string | null; nowPlaying: boolean }
+export type LastFmMoodProfile = { username: string; tags: string[]; recentArtists: string[]; recentTracks: LastFmRecentTrack[]; bpmAvailable: false }
 export const getLastFmStatus = () => request<LastFmStatus>('/lastfm/status')
 export const getLastFmMoodProfile = () => request<LastFmMoodProfile>('/lastfm/mood-profile')
 export const startLastFmConnection = () => request<{ authorizationUrl: string }>('/lastfm/connect')

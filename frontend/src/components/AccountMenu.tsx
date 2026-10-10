@@ -124,7 +124,8 @@ export function AccountMenu({ user, onClose, onSignOut, mobile = false }: Accoun
           <button type="button" className="account-menu-integration-action" onClick={() => void connectLastFm()} disabled={lastFmBusy || !lastFmStatus?.configured}><Music2 size={15}/>{lastFmBusy ? 'Conectando…' : 'Conectar con Last.fm'}</button>
           {!lastFmStatus?.configured && <div className="account-menu-detail">Requiere configurar la clave y el secreto de Last.fm en el servidor.</div>}
         </>}
-        {location.search.includes('lastfm=connected') && <p className="account-menu-integration-note" role="status">Cuenta de Last.fm vinculada.</p>}
+        {location.search.includes('lastfm=connected') && lastFmStatus?.connected && <p className="account-menu-integration-note" role="status">Cuenta de Last.fm vinculada.</p>}
+        {location.search.includes('lastfm=connected') && !lastFmLoading && lastFmStatus && !lastFmStatus.connected && <p className="account-menu-integration-error" role="alert">Last.fm autorizó el acceso, pero no se guardó el vínculo en Sonora. Volvé a conectar la cuenta.</p>}
         {location.search.includes('lastfm=error') && <p className="account-menu-integration-error" role="alert">No se pudo vincular Last.fm. Intentá otra vez.</p>}
         {lastFmError && <p className="account-menu-integration-error" role="alert">{lastFmError}</p>}
       </div>

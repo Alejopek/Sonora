@@ -140,16 +140,32 @@ async def mood_profile(user: User = Depends(current_user)):
     if isinstance(raw_tracks, dict):
         raw_tracks = [raw_tracks]
     artists: list[str] = []
+    recent_tracks: list[dict[str, str | bool | None]] = []
     for item in raw_tracks:
         if not isinstance(item, dict):
             continue
         raw_artist = item.get('artist', '')
         artist = raw_artist.get('#text', '') if isinstance(raw_artist, dict) else str(raw_artist)
+        title = str(item.get('name', '')).strip()
+        if title and artist.strip():
+            images = item.get('image') or []
+            image = next((entry.get('#text') for entry in reversed(images) if isinstance(entry, dict) and entry.get('#text')), '')
+            album_data = item.get('album') or {}
+            date_data = item.get('date') or {}
+            recent_tracks.append({
+                'title': title,
+                'artist': artist.strip(),
+                'album': album_data.get('#text', '') if isinstance(album_data, dict) else '',
+                'url': str(item.get('url', '')),
+                'thumbnail': image,
+                'playedAt': date_data.get('uts') if isinstance(date_data, dict) else None,
+                'nowPlaying': (item.get('@attr') or {}).get('nowplaying') == 'true',
+            })
         if artist.strip() and artist.strip().casefold() not in {name.casefold() for name in artists}:
             artists.append(artist.strip())
-        if len(artists) == 5:
+        if len(recent_tracks) == 12:
             break
-    return {'username': user.lastfm_username, 'tags': tags[:8], 'recentArtists': artists, 'bpmAvailable': False}
+    return {'username': user.lastfm_username, 'tags': tags[:8], 'recentArtists': artists[:5], 'recentTracks': recent_tracks, 'bpmAvailable': False}
 
 
 @router.delete('/connection', status_code=204)

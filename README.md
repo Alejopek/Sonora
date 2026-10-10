@@ -57,7 +57,7 @@ Las búsquedas públicas suelen funcionar sin autenticación. Para resultados pe
 
 Opcionalmente se puede definir `VITE_API_URL` en `frontend/.env` si la API no se ejecuta en `http://localhost:8000/api`.
 
-La integración de Last.fm permite vincular una cuenta desde el menú del avatar y usa artistas recientes y etiquetas del perfil para contextualizar las búsquedas de ánimo. Para habilitarla, crea una API account en Last.fm y define `LASTFM_API_KEY` y `LASTFM_API_SECRET` en el entorno del backend; `LASTFM_CALLBACK_URL` solo hace falta si la URL pública del backend no se puede inferir de la solicitud. La API de Last.fm no proporciona BPM, por lo que esa integración no puede añadir datos ni filtros de tempo.
+La integración de Last.fm permite vincular una cuenta desde el menú del avatar, muestra sus canciones escuchadas recientemente y usa artistas recientes y etiquetas del perfil para contextualizar las búsquedas de ánimo. Cada canción reciente puede buscarse en Sonora para reproducirla. Para habilitarla, crea una API account en Last.fm y define `LASTFM_API_KEY` y `LASTFM_API_SECRET` en el entorno del backend; `LASTFM_CALLBACK_URL` solo hace falta si la URL pública del backend no se puede inferir de la solicitud. La API de Last.fm no proporciona BPM, por lo que esa integración no puede añadir datos ni filtros de tempo.
 
 ### Despliegue con Docker y Túnel
 

@@ -9,6 +9,7 @@ import {
   Shuffle,
   Sparkles,
   TrendingUp,
+  Search,
 } from 'lucide-react'
 import { CoverImage } from '../components/CoverImage'
 import { picks, moodCategories } from '../lib/data'
@@ -19,14 +20,16 @@ import { Section } from '../components/Section'
 import { SongRow } from '../components/SongRow'
 import type { Track } from '../types/music'
 import { AlbumCard } from '../components/AlbumCard'
+import { useNavigate } from 'react-router-dom'
 
 export function HomePage() {
+  const navigate = useNavigate()
   const { playTrack, history, favorites, currentTrack, isPlaying, setPlaying, addToQueue } = usePlayerStore()
   const { user } = useAuthStore()
   const token = useAuthStore((state) => state.token)
   const { data: personalMix } = useQuery({ queryKey: ['daily-mix'], queryFn: getDailyMix, enabled: Boolean(token), staleTime: 5 * 60_000, retry: false })
   const { data: lastFmStatus } = useQuery({ queryKey: ['lastfm-status', user?.id], queryFn: getLastFmStatus, enabled: Boolean(token), staleTime: 60_000, retry: false })
-  const { data: lastFmProfile } = useQuery({ queryKey: ['lastfm-mood-profile', user?.id], queryFn: getLastFmMoodProfile, enabled: Boolean(token && lastFmStatus?.connected), staleTime: 30 * 60_000, retry: false })
+  const { data: lastFmProfile, isError: lastFmProfileError } = useQuery({ queryKey: ['lastfm-mood-profile', user?.id], queryFn: getLastFmMoodProfile, enabled: Boolean(token && lastFmStatus?.connected), staleTime: 2 * 60_000, refetchInterval: 5 * 60_000, retry: false })
   const { data: albumRecommendations } = useQuery({ queryKey: ['recommended-albums', token ? 'personal' : 'popular'], queryFn: async () => { if (token) { try { const albums = (await getRecommendedAlbums()).albums; if (albums.length) return albums } catch { /* Keep album discovery available if personalized data is unavailable. */ } } return (await searchMusic('indie alternative albums', 'albums')).albums }, staleTime: 10 * 60_000, retry: false })
   const personalTracks = personalMix?.tracks ?? []
 
@@ -167,6 +170,7 @@ export function HomePage() {
           ))}
         </div>
         {lastFmStatus?.connected && <p className="home-mood-personalization">Tus artistas recientes y etiquetas de Last.fm ajustan estas búsquedas. Last.fm no ofrece datos de BPM.</p>}
+        {lastFmStatus?.connected && lastFmProfileError && <p className="home-mood-personalization" role="status">Last.fm está vinculado, pero no se pudo leer tu actividad reciente. Revisá la conexión en el menú del avatar.</p>}
       </div>
 
       {/* 2) Hero Interactivo / Destacado para escuchar ahora con Carrusel y portada con Parallax */}
@@ -335,6 +339,25 @@ export function HomePage() {
           />
         ))}
       </Section>
+
+      {lastFmStatus?.connected && lastFmProfile?.recentTracks.length ? <Section title="Escuchado en Last.fm">
+        <div className="lastfm-recent-list">
+          {lastFmProfile.recentTracks.slice(0, 8).map((track, index) => (
+            <button
+              type="button"
+              className="lastfm-recent-item"
+              key={`${track.title}-${track.artist}-${index}`}
+              onClick={() => navigate(`/search?q=${encodeURIComponent(`${track.title} ${track.artist}`)}`)}
+              aria-label={`Buscar ${track.title} de ${track.artist} en Sonora`}
+              title="Buscar esta canción en Sonora"
+            >
+              <CoverImage src={track.thumbnail} alt="" />
+              <span className="lastfm-recent-copy"><b>{track.title}</b><small>{track.artist}{track.nowPlaying ? ' · Reproduciendo ahora en Last.fm' : ''}</small></span>
+              <Search size={16} aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+      </Section> : null}
 
       {/* 5) Quick picks dinámicos según el mood seleccionado */}
       <Section title={activeMood === 'all' && personalTracks.length ? 'Quick picks para vos' : activeMood === 'all' ? 'Quick picks' : `Picks para ${moodCategories.find(m => m.id === activeMood)?.label || 'este momento'}`}>

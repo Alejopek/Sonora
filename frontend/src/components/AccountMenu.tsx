@@ -1,8 +1,9 @@
-import { Library, LogOut, UserRound, X } from 'lucide-react'
+import { Library, LogOut, Music2, Unlink, UserRound, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import type { SessionUser } from '../services/api'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { disconnectLastFm, getLastFmStatus, startLastFmConnection, type SessionUser } from '../services/api'
 import { happy, surprised, wink, type AvatarExpression } from '../lib/blobatar-expressions'
 import { UserAvatar } from './UserAvatar'
 
@@ -23,10 +24,15 @@ const avatarExpressions = [happy, wink, surprised] as const
 
 export function AccountMenu({ user, onClose, onSignOut, mobile = false }: AccountMenuProps) {
   const navigate = useNavigate()
+  const location = useLocation()
+  const queryClient = useQueryClient()
+  const { data: lastFmStatus, isLoading: lastFmLoading } = useQuery({ queryKey: ['lastfm-status', user.id], queryFn: getLastFmStatus, staleTime: 60_000 })
   const joined = joinedOn(user.created_at)
   const [avatarExpression, setAvatarExpression] = useState<AvatarExpression>()
   const expressionIndex = useRef(0)
   const expressionTimeout = useRef<number | undefined>(undefined)
+  const [lastFmBusy, setLastFmBusy] = useState(false)
+  const [lastFmError, setLastFmError] = useState<string | null>(null)
   const goTo = (path: string) => {
     navigate(path)
     onClose()
@@ -52,6 +58,32 @@ export function AccountMenu({ user, onClose, onSignOut, mobile = false }: Accoun
       window.clearTimeout(expressionTimeout.current)
       expressionTimeout.current = window.setTimeout(() => setAvatarExpression(undefined), 900)
     })
+  }
+
+  const connectLastFm = async () => {
+    setLastFmBusy(true)
+    setLastFmError(null)
+    try {
+      const { authorizationUrl } = await startLastFmConnection()
+      window.location.assign(authorizationUrl)
+    } catch (error) {
+      setLastFmError(error instanceof Error ? error.message : 'No se pudo iniciar la conexión con Last.fm.')
+      setLastFmBusy(false)
+    }
+  }
+
+  const disconnectLastFmAccount = async () => {
+    setLastFmBusy(true)
+    setLastFmError(null)
+    try {
+      await disconnectLastFm()
+      await queryClient.invalidateQueries({ queryKey: ['lastfm-status', user.id] })
+      queryClient.removeQueries({ queryKey: ['lastfm-mood-profile', user.id] })
+    } catch (error) {
+      setLastFmError(error instanceof Error ? error.message : 'No se pudo desconectar Last.fm.')
+    } finally {
+      setLastFmBusy(false)
+    }
   }
 
   const menu = (
@@ -82,6 +114,19 @@ export function AccountMenu({ user, onClose, onSignOut, mobile = false }: Accoun
         <span className="account-menu-label">Usuario</span>
         <div className="account-menu-detail"><UserRound size={15} /><span>Cuenta activa</span></div>
         {joined && <div className="account-menu-detail"><span className="account-menu-detail-dot" aria-hidden="true" /><span>En Sonora desde {joined}</span></div>}
+      </div>
+      <div className="account-menu-section account-menu-integration" aria-label="Integraciones">
+        <span className="account-menu-label">Integraciones</span>
+        {lastFmLoading ? <div className="account-menu-detail">Consultando Last.fm…</div> : lastFmStatus?.connected ? <>
+          <div className="account-menu-detail"><Music2 size={15}/><span>Last.fm conectado como <b>{lastFmStatus.username}</b></span></div>
+          <button type="button" className="account-menu-integration-action" onClick={() => void disconnectLastFmAccount()} disabled={lastFmBusy}><Unlink size={14}/>{lastFmBusy ? 'Desconectando…' : 'Desconectar Last.fm'}</button>
+        </> : <>
+          <button type="button" className="account-menu-integration-action" onClick={() => void connectLastFm()} disabled={lastFmBusy || !lastFmStatus?.configured}><Music2 size={15}/>{lastFmBusy ? 'Conectando…' : 'Conectar con Last.fm'}</button>
+          {!lastFmStatus?.configured && <div className="account-menu-detail">Requiere configurar la clave y el secreto de Last.fm en el servidor.</div>}
+        </>}
+        {location.search.includes('lastfm=connected') && <p className="account-menu-integration-note" role="status">Cuenta de Last.fm vinculada.</p>}
+        {location.search.includes('lastfm=error') && <p className="account-menu-integration-error" role="alert">No se pudo vincular Last.fm. Intentá otra vez.</p>}
+        {lastFmError && <p className="account-menu-integration-error" role="alert">{lastFmError}</p>}
       </div>
       <div className="account-menu-actions">
         <button type="button" onClick={() => goTo('/library')}><Library size={17} />Biblioteca</button>

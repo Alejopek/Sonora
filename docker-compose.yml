@@ -14,6 +14,8 @@ services:
       - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env before starting Compose}
       - JWT_EXPIRES_HOURS=${JWT_EXPIRES_HOURS:-168}
       - LASTFM_API_KEY=${LASTFM_API_KEY:-}
+      - LASTFM_API_SECRET=${LASTFM_API_SECRET:-}
+      - LASTFM_CALLBACK_URL=${LASTFM_CALLBACK_URL:-}
     networks:
       - sonora-net
     depends_on:

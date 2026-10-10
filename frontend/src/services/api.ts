@@ -105,6 +105,12 @@ export const getRecommendedAlbums = () => request<{ albums: Album[] }>('/recomme
 export const login = (email: string, password: string) => request<Session>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
 export const register = (username: string, email: string, password: string) => request<Session>('/auth/register', { method: 'POST', body: JSON.stringify({ username, email, password }) })
 export const getMe = () => request<SessionUser>('/auth/me')
+export type LastFmStatus = { configured: boolean; connected: boolean; username: string | null }
+export type LastFmMoodProfile = { username: string; tags: string[]; recentArtists: string[]; bpmAvailable: false }
+export const getLastFmStatus = () => request<LastFmStatus>('/lastfm/status')
+export const getLastFmMoodProfile = () => request<LastFmMoodProfile>('/lastfm/mood-profile')
+export const startLastFmConnection = () => request<{ authorizationUrl: string }>('/lastfm/connect')
+export const disconnectLastFm = () => request<void>('/lastfm/connection', { method: 'DELETE' })
 export const recordHistory = (track: SavedTrack) => request<SavedTrackResponse>('/history', { method: 'POST', body: JSON.stringify(track) })
 export const getHistory = () => request<SavedTrackResponse[]>('/history')
 export const toggleRemoteFavorite = (track: SavedTrack) => request<{ liked: boolean }>('/favorites/toggle', { method: 'POST', body: JSON.stringify(track) })

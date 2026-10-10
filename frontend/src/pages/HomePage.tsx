@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { CoverImage } from '../components/CoverImage'
 import { picks, moodCategories } from '../lib/data'
-import { getDailyMix, getRecommendedAlbums, searchMusic } from '../services/api'
+import { getDailyMix, getLastFmMoodProfile, getLastFmStatus, getRecommendedAlbums, searchMusic } from '../services/api'
 import { usePlayerStore } from '../stores/player-store'
 import { useAuthStore } from '../stores/auth-store'
 import { Section } from '../components/Section'
@@ -25,6 +25,8 @@ export function HomePage() {
   const { user } = useAuthStore()
   const token = useAuthStore((state) => state.token)
   const { data: personalMix } = useQuery({ queryKey: ['daily-mix'], queryFn: getDailyMix, enabled: Boolean(token), staleTime: 5 * 60_000, retry: false })
+  const { data: lastFmStatus } = useQuery({ queryKey: ['lastfm-status', user?.id], queryFn: getLastFmStatus, enabled: Boolean(token), staleTime: 60_000, retry: false })
+  const { data: lastFmProfile } = useQuery({ queryKey: ['lastfm-mood-profile', user?.id], queryFn: getLastFmMoodProfile, enabled: Boolean(token && lastFmStatus?.connected), staleTime: 30 * 60_000, retry: false })
   const { data: albumRecommendations } = useQuery({ queryKey: ['recommended-albums', token ? 'personal' : 'popular'], queryFn: async () => { if (token) { try { const albums = (await getRecommendedAlbums()).albums; if (albums.length) return albums } catch { /* Keep album discovery available if personalized data is unavailable. */ } } return (await searchMusic('indie alternative albums', 'albums')).albums }, staleTime: 10 * 60_000, retry: false })
   const personalTracks = personalMix?.tracks ?? []
 
@@ -35,6 +37,23 @@ export function HomePage() {
 
   // Filtro de categorías / estados de ánimo
   const [activeMood, setActiveMood] = useState('all')
+  const moodSearchQueries: Record<string, string> = {
+    focus: 'instrumental lo-fi music for focus',
+    relax: 'chill ambient slow relaxing songs',
+    energy: 'upbeat energetic dance pop songs',
+    night: 'dark atmospheric synthwave songs',
+  }
+  const lastFmTasteTerms = [
+    ...(lastFmProfile?.tags.slice(0, 3) ?? []),
+    ...(lastFmProfile?.recentArtists.slice(0, 2) ?? []),
+  ].join(' ')
+  const { data: moodTracks, isLoading: moodTracksLoading, isError: moodTracksError } = useQuery({
+    queryKey: ['mood-tracks', activeMood, lastFmTasteTerms],
+    queryFn: async () => (await searchMusic(`${moodSearchQueries[activeMood]} ${lastFmTasteTerms}`.trim(), 'songs')).songs,
+    enabled: activeMood !== 'all',
+    staleTime: 10 * 60_000,
+    retry: false,
+  })
 
   // Saludo según la hora del día
   const greeting = useMemo(() => {
@@ -53,23 +72,11 @@ export function HomePage() {
     return picks.slice(0, 5)
   }, [history])
 
-  // Filtrado de canciones de Quick Picks según el mood seleccionado
+  // La búsqueda filtrada de YouTube Music trae canciones relacionadas con el mood.
   const filteredQuickPicks = useMemo(() => {
-    if (personalTracks.length) return personalTracks.slice(0, 8)
-    if (activeMood === 'focus') {
-      return [picks[1], picks[2], picks[8], picks[0]]
-    }
-    if (activeMood === 'relax') {
-      return [picks[1], picks[0], picks[4], picks[8]]
-    }
-    if (activeMood === 'energy') {
-      return [picks[3], picks[5], picks[6], picks[7]]
-    }
-    if (activeMood === 'night') {
-      return [picks[2], picks[0], picks[5], picks[8]]
-    }
-    return picks
-  }, [activeMood, personalTracks])
+    if (activeMood === 'all') return personalTracks.length ? personalTracks.slice(0, 8) : picks
+    return (moodTracks ?? []).slice(0, 12)
+  }, [activeMood, moodTracks, personalTracks])
 
   const nextFeatured = () => {
     setFeaturedIndex((prev) => (prev + 1) % featuredTracks.length)
@@ -159,6 +166,7 @@ export function HomePage() {
             </button>
           ))}
         </div>
+        {lastFmStatus?.connected && <p className="home-mood-personalization">Tus artistas recientes y etiquetas de Last.fm ajustan estas búsquedas. Last.fm no ofrece datos de BPM.</p>}
       </div>
 
       {/* 2) Hero Interactivo / Destacado para escuchar ahora con Carrusel y portada con Parallax */}
@@ -329,7 +337,7 @@ export function HomePage() {
       </Section>
 
       {/* 5) Quick picks dinámicos según el mood seleccionado */}
-      <Section title={personalTracks.length ? 'Quick picks para vos' : activeMood === 'all' ? 'Quick picks' : `Picks para ${moodCategories.find(m => m.id === activeMood)?.label || 'este momento'}`}>
+      <Section title={activeMood === 'all' && personalTracks.length ? 'Quick picks para vos' : activeMood === 'all' ? 'Quick picks' : `Picks para ${moodCategories.find(m => m.id === activeMood)?.label || 'este momento'}`}>
         <div className="album-grid">
         {filteredQuickPicks.map((track) => (
             <button
@@ -347,7 +355,10 @@ export function HomePage() {
               <small>{track.artist}</small>
             </button>
           ))}
-          {!personalTracks.length && user && <p className="personal-recommendation-empty">Estamos reuniendo tus primeras señales. Mientras tanto, estas canciones son una selección inicial.</p>}
+          {activeMood !== 'all' && moodTracksLoading && <p className="personal-recommendation-empty" role="status">Buscando canciones para este momento…</p>}
+          {activeMood !== 'all' && moodTracksError && <p className="personal-recommendation-empty" role="status">No se pudieron cargar canciones para esta categoría. Probá de nuevo en unos segundos.</p>}
+          {activeMood !== 'all' && !moodTracksLoading && !moodTracksError && filteredQuickPicks.length === 0 && <p className="personal-recommendation-empty" role="status">No encontramos canciones para esta categoría.</p>}
+          {activeMood === 'all' && !personalTracks.length && user && <p className="personal-recommendation-empty">Estamos reuniendo tus primeras señales. Mientras tanto, estas canciones son una selección inicial.</p>}
         </div>
       </Section>
 

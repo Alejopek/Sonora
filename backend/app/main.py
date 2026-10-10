@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from app.routes.music import router
 from app.routes.account import router as account_router
 from app.routes.insights import router as insights_router
+from app.routes.lastfm import router as lastfm_router
 from app.database import close_database, initialize_database
 
 @asynccontextmanager
@@ -37,6 +38,7 @@ app.add_middleware(
 app.include_router(router)
 app.include_router(account_router)
 app.include_router(insights_router)
+app.include_router(lastfm_router)
 
 @app.api_route('/health', methods=['GET', 'HEAD'])
 def health():

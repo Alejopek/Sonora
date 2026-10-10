@@ -47,13 +47,17 @@ YOUTUBE_COOKIES=
 # YOUTUBE_COOKIES_FILE=/path/to/cookies.txt
 # HTTPS_PROXY=http://user:pass@proxy:port
 
-# Opcional. Enriquece etiquetas de artistas para recomendaciones. Nunca llega al frontend.
+# Opcionales. Habilitan la conexión con Last.fm; las credenciales nunca llegan al frontend.
 LASTFM_API_KEY=
+LASTFM_API_SECRET=
+# LASTFM_CALLBACK_URL=https://sonora.example.com/api/lastfm/callback
 ```
 
 Las búsquedas públicas suelen funcionar sin autenticación. Para resultados personalizados o mayor estabilidad, seguí la guía de autenticación de `ytmusicapi` y colocá la ruta del archivo generado en `YTMUSIC_AUTH`. En despliegues como Vercel donde YouTube bloquea peticiones de audio, definí `YOUTUBE_COOKIES` con el contenido del archivo `cookies.txt` de YouTube. No publiques este contenido ni lo copies al frontend.
 
 Opcionalmente se puede definir `VITE_API_URL` en `frontend/.env` si la API no se ejecuta en `http://localhost:8000/api`.
+
+La integración de Last.fm permite vincular una cuenta desde el menú del avatar y usa artistas recientes y etiquetas del perfil para contextualizar las búsquedas de ánimo. Para habilitarla, crea una API account en Last.fm y define `LASTFM_API_KEY` y `LASTFM_API_SECRET` en el entorno del backend; `LASTFM_CALLBACK_URL` solo hace falta si la URL pública del backend no se puede inferir de la solicitud. La API de Last.fm no proporciona BPM, por lo que esa integración no puede añadir datos ni filtros de tempo.
 
 ### Despliegue con Docker y Túnel
 
@@ -79,7 +83,7 @@ La navegación incluye **Para vos** y **Estadísticas**. El mix diario se guarda
 
 La app conserva sesiones detalladas de escucha por 180 días y agrega tiempo, reproducciones, completados y saltos en tablas históricas. El tiempo escuchado procede del progreso real del elemento de audio. Los agregados permiten conservar estadísticas de todo el tiempo sin crecimiento ilimitado de eventos. Las migraciones e índices están en `backend/migrations/`.
 
-Last.fm es estrictamente opcional: definí `LASTFM_API_KEY` en el `.env` del servidor si querés enriquecer etiquetas de artistas cuando estén disponibles. No es necesaria para que recomendaciones, mix, cola ni estadísticas funcionen, y la clave no se devuelve ni se registra.
+Last.fm es opcional: definí `LASTFM_API_KEY` y `LASTFM_API_SECRET` en el `.env` del servidor para enriquecer recomendaciones y permitir que cada cuenta conecte su perfil. No son necesarios para que el resto de Sonora funcione y nunca se devuelven ni se registran.
 
 ## Arquitectura
 

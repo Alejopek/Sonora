@@ -148,9 +148,7 @@ def stream_endpoint(video_id: str, container: Literal['auto', 'mp4', 'webm'] = Q
             sys.executable, '-m', 'yt_dlp',
             '--no-playlist',
             '--extractor-args', f"youtube:player_client={'web_safari' if attempt else 'android'};player_skip=webpage,configs,js",
-            # Never fall back to a video container: the client uses <audio> and
-            # a progressive video format can be rejected even when it has audio.
-            '--format', 'bestaudio'
+            '--format', 'bestaudio/best'
         ]
         
         cookie_file = os.getenv('YOUTUBE_COOKIES_FILE')
@@ -185,7 +183,7 @@ def stream_endpoint(video_id: str, container: Literal['auto', 'mp4', 'webm'] = Q
                 sys.executable, '-m', 'yt_dlp',
                 '--no-playlist',
                 '--extractor-args', 'youtube:player_client=android;player_skip=webpage,configs,js',
-                '--format', 'bestaudio'
+                '--format', 'bestaudio/best'
             ]
             if proxy:
                 fallback_cmd.extend(['--proxy', proxy])

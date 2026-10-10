@@ -30,6 +30,7 @@ export function SongRow({
   moreTitle,
   recommendation = false,
   onFeedback,
+  compact = false,
 }: {
   track: Track
   index?: number
@@ -38,6 +39,7 @@ export function SongRow({
   moreTitle?: string
   recommendation?: boolean
   onFeedback?: (id: string) => void
+  compact?: boolean
 }) {
   const navigate = useNavigate()
   const { currentTrack, isPlaying, playTrack, setPlaying, addToQueue, toggleFavorite, isFavorite } =
@@ -154,7 +156,7 @@ export function SongRow({
 
   return (
     <>
-      <div className={`song-row ${active ? 'playing' : ''} ${recommendation ? 'recommendation-row' : ''}`}>
+      <div className={`song-row ${active ? 'playing' : ''} ${recommendation ? 'recommendation-row' : ''} ${compact ? 'song-row-compact' : ''}`}>
         {/* 1) Columna de número / play */}
         <button
           type="button"
@@ -192,117 +194,121 @@ export function SongRow({
           {recommendation && 'reason' in track && <small className="recommendation-reason">{String(track.reason)}</small>}
         </div>
 
-        {/* 4) Álbum */}
-        <span className="album-name">{track.album}</span>
+        {/* 4) Álbum (oculto en modo compacto) */}
+        {!compact && <span className="album-name">{track.album}</span>}
 
-        {/* 5) Like / Favorito */}
-        <button
-          type="button"
-          className={`like ${liked ? 'liked' : ''}`}
-          onClick={() => toggleFavorite(track)}
-          aria-label={liked ? 'Quitar de favoritos' : 'Favorito'}
-        >
-          <Heart size={17} fill={liked ? 'currentColor' : 'none'} />
-        </button>
+        {/* 5) Like / Favorito (oculto en modo compacto) */}
+        {!compact && (
+          <button
+            type="button"
+            className={`like ${liked ? 'liked' : ''}`}
+            onClick={() => toggleFavorite(track)}
+            aria-label={liked ? 'Quitar de favoritos' : 'Favorito'}
+          >
+            <Heart size={17} fill={liked ? 'currentColor' : 'none'} />
+          </button>
+        )}
 
         {recommendation && <span className="recommendation-actions"><button type="button" className="icon-button" onClick={() => feedback('less')} aria-label={`Menos música como ${track.title}`} title="Menos de esto"><ThumbsDown size={15}/></button><button type="button" className="icon-button" onClick={() => feedback('exclude')} aria-label={`No recomendar ${track.title}`} title="No recomendar"><Ban size={15}/></button></span>}
 
-        {/* 6) Duración */}
-        <span className="duration">{track.duration ?? '—'}</span>
+        {/* 6) Duración (oculta en modo compacto) */}
+        {!compact && <span className="duration">{track.duration ?? '—'}</span>}
 
-        {/* 7) Menú de tres puntos */}
-        <div className="row-menu-container" ref={menuContainerRef}>
-          <button
-            type="button"
-            ref={triggerRef}
-            className={`icon-button row-menu ${menuOpen ? 'menu-active' : ''}`}
-            title="Más opciones"
-            aria-label={`Más opciones para ${track.title}`}
-            aria-expanded={menuOpen}
-            onClick={toggleMenu}
-          >
-            <MoreHorizontal size={18} />
-          </button>
-
-          {menuOpen && (
-            <div
-              className={`song-dropdown-menu ${menuPlacement}`}
-              role="menu"
-              aria-label={`Opciones de ${track.title}`}
-              onClick={(e) => e.stopPropagation()}
+        {/* 7) Menú de tres puntos (oculto en modo compacto) */}
+        {!compact && (
+          <div className="row-menu-container" ref={menuContainerRef}>
+            <button
+              type="button"
+              ref={triggerRef}
+              className={`icon-button row-menu ${menuOpen ? 'menu-active' : ''}`}
+              title="Más opciones"
+              aria-label={`Más opciones para ${track.title}`}
+              aria-expanded={menuOpen}
+              onClick={toggleMenu}
             >
-              <button
-                type="button"
-                role="menuitem"
-                className="song-dropdown-item"
-                onClick={handleAddToQueue}
-              >
-                {queueAdded ? <Check size={15} /> : <ListPlus size={15} />}
-                <span>{queueAdded ? 'Agregada a la cola' : 'Agregar a la cola'}</span>
-              </button>
+              <MoreHorizontal size={18} />
+            </button>
 
-              <button
-                type="button"
-                role="menuitem"
-                className="song-dropdown-item"
-                onClick={handleOpenPlaylistModal}
+            {menuOpen && (
+              <div
+                className={`song-dropdown-menu ${menuPlacement}`}
+                role="menu"
+                aria-label={`Opciones de ${track.title}`}
+                onClick={(e) => e.stopPropagation()}
               >
-                <FolderPlus size={15} />
-                <span>Agregar a una playlist</span>
-              </button>
-
-              <button
-                type="button"
-                role="menuitem"
-                className="song-dropdown-item"
-                onClick={handleGoToArtist}
-              >
-                <User size={15} />
-                <span>Ir al artista</span>
-              </button>
-
-              {track.album && (
                 <button
                   type="button"
                   role="menuitem"
                   className="song-dropdown-item"
-                  onClick={handleGoToAlbum}
+                  onClick={handleAddToQueue}
                 >
-                  <Disc size={15} />
-                  <span>Ir al álbum</span>
+                  {queueAdded ? <Check size={15} /> : <ListPlus size={15} />}
+                  <span>{queueAdded ? 'Agregada a la cola' : 'Agregar a la cola'}</span>
                 </button>
-              )}
 
-              <button
-                type="button"
-                role="menuitem"
-                className="song-dropdown-item"
-                onClick={handleCopyLink}
-              >
-                {copied ? <Check size={15} /> : <Copy size={15} />}
-                <span>{copied ? '¡Enlace copiado!' : 'Copiar enlace'}</span>
-              </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="song-dropdown-item"
+                  onClick={handleOpenPlaylistModal}
+                >
+                  <FolderPlus size={15} />
+                  <span>Agregar a una playlist</span>
+                </button>
 
-              {onMore && (
-                <>
-                  <div className="song-dropdown-divider" role="separator" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="song-dropdown-item"
+                  onClick={handleGoToArtist}
+                >
+                  <User size={15} />
+                  <span>Ir al artista</span>
+                </button>
+
+                {track.album && (
                   <button
                     type="button"
                     role="menuitem"
-                    className="song-dropdown-item danger"
-                    onClick={() => {
-                      setMenuOpen(false)
-                      onMore()
-                    }}
+                    className="song-dropdown-item"
+                    onClick={handleGoToAlbum}
                   >
-                    <Trash2 size={15} />
-                    <span>{moreTitle ?? 'Quitar de la playlist'}</span>
+                    <Disc size={15} />
+                    <span>Ir al álbum</span>
                   </button>
-                </>
-              )}
-            </div>
-          )}
-        </div>
+                )}
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="song-dropdown-item"
+                  onClick={handleCopyLink}
+                >
+                  {copied ? <Check size={15} /> : <Copy size={15} />}
+                  <span>{copied ? '¡Enlace copiado!' : 'Copiar enlace'}</span>
+                </button>
+
+                {onMore && (
+                  <>
+                    <div className="song-dropdown-divider" role="separator" />
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="song-dropdown-item danger"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        onMore()
+                      }}
+                    >
+                      <Trash2 size={15} />
+                      <span>{moreTitle ?? 'Quitar de la playlist'}</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <AddToPlaylistModal

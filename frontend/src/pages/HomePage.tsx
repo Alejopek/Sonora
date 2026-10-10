@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   ChevronLeft,
   ChevronRight,
@@ -81,6 +81,46 @@ export function HomePage() {
     }
   }
 
+  // Tracking de scroll y cursor para interacción fluida de la portada en Desktop
+  // En móvil (<= 720px), se mantiene fija sin desplazarse
+  const [scrollY, setScrollY] = useState(0)
+  const [cursorYOffset, setCursorYOffset] = useState(0)
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 720)
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 720)
+    }
+    const handleScroll = () => {
+      if (window.innerWidth > 720) {
+        setScrollY(window.scrollY)
+      } else {
+        setScrollY(0)
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
+
+  const handleHeroMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    if (isMobile) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const relativeY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height))
+    setCursorYOffset(relativeY * 22)
+  }
+
+  const handleHeroMouseLeave = () => {
+    setCursorYOffset(0)
+  }
+
+  // Si está en móvil, 0 (fija en el celular). En desktop, la imagen se desplaza suavemente hacia abajo al scrollear o bajar el cursor.
+  const heroImageSlideY = isMobile ? 0 : Math.min(scrollY * 0.42 + cursorYOffset, 120)
+
   return (
     <div className="page home-page">
       {/* 1) Encabezado dinámico y filtros de mood */}
@@ -113,15 +153,12 @@ export function HomePage() {
         </div>
       </div>
 
-      {/* 2) Hero Interactivo / Destacado para escuchar ahora con Carrusel */}
-      <section className="hero hero-enhanced">
-        <div className="hero-art-container">
-          <div className="hero-art">
-            <CoverImage src={currentFeatured.thumbnail} alt={currentFeatured.title} />
-          </div>
-          <div className="hero-art-glow" />
-        </div>
-
+      {/* 2) Hero Interactivo / Destacado para escuchar ahora con Carrusel y portada con Parallax */}
+      <section
+        className="hero hero-enhanced"
+        onMouseMove={handleHeroMouseMove}
+        onMouseLeave={handleHeroMouseLeave}
+      >
         <div className="hero-copy">
           <div className="hero-badge-row">
             <span className="eyebrow">DESTACADO · PARA ESCUCHAR AHORA</span>
@@ -169,27 +206,39 @@ export function HomePage() {
           </div>
         </div>
 
-        {/* Controles de carrusel en el hero */}
-        <div className="hero-carousel-nav">
-          <button
-            type="button"
-            className="hero-nav-arrow"
-            onClick={prevFeatured}
-            aria-label="Destacado anterior"
+        <div className="hero-art-stage">
+          <div
+            className="hero-art-container"
+            style={heroImageSlideY > 0 ? { transform: `translateY(${heroImageSlideY}px)` } : undefined}
           >
-            <ChevronLeft size={18} />
-          </button>
-          <span className="hero-index">
-            {String(featuredIndex + 1).padStart(2, '0')} <i>/</i> {String(featuredTracks.length).padStart(2, '0')}
-          </span>
-          <button
-            type="button"
-            className="hero-nav-arrow"
-            onClick={nextFeatured}
-            aria-label="Siguiente destacado"
-          >
-            <ChevronRight size={18} />
-          </button>
+            <div className="hero-art">
+              <CoverImage src={currentFeatured.thumbnail} alt={currentFeatured.title} />
+            </div>
+            <div className="hero-art-glow" />
+          </div>
+
+          {/* Controles de carrusel en el hero */}
+          <div className="hero-carousel-nav">
+            <button
+              type="button"
+              className="hero-nav-arrow"
+              onClick={prevFeatured}
+              aria-label="Destacado anterior"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <span className="hero-index">
+              {String(featuredIndex + 1).padStart(2, '0')} <i>/</i> {String(featuredTracks.length).padStart(2, '0')}
+            </span>
+            <button
+              type="button"
+              className="hero-nav-arrow"
+              onClick={nextFeatured}
+              aria-label="Siguiente destacado"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
         </div>
       </section>
 

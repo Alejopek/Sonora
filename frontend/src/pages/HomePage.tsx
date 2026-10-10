@@ -1,20 +1,317 @@
+import { useState, useMemo } from 'react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Flame,
+  ListPlus,
+  Play,
+  Shuffle,
+  Sparkles,
+  TrendingUp,
+} from 'lucide-react'
 import { CoverImage } from '../components/CoverImage'
-import { Play } from 'lucide-react'
-import { picks } from '../lib/data'
+import { picks, mixCards, moodCategories } from '../lib/data'
 import { usePlayerStore } from '../stores/player-store'
+import { useAuthStore } from '../stores/auth-store'
 import { Section } from '../components/Section'
 import { SongRow } from '../components/SongRow'
+import type { Track } from '../types/music'
 
 export function HomePage() {
-  const { playTrack } = usePlayerStore()
-  return <div className="page home-page">
-    <div className="home-heading"><span className="eyebrow">TU ESPACIO, TU MÚSICA</span><h1>Buenas vibras.</h1><p>Una selección para acompañar el momento.</p></div>
-    <section className="hero">
-      <div className="hero-art"><CoverImage src={picks[0].thumbnail} alt="Blonde cover"/></div>
-      <div className="hero-copy"><span className="eyebrow">DESTACADO · PARA ESCUCHAR AHORA</span><h2>{picks[0].title}</h2><p>{picks[0].artist} <span className="hero-dot">·</span> {picks[0].album}</p><div className="hero-actions"><button className="primary" onClick={() => playTrack(picks[0], picks)}><Play size={18} fill="currentColor"/> Reproducir</button></div></div>
-      <span className="hero-index">01 <i>/</i> 04</span>
-    </section>
-    <Section title="Escuchado recientemente"><div className="list-head"><span>#</span><span>TÍTULO</span><span>ÁLBUM</span><span></span><span></span></div>{picks.slice(0,4).map((track, i) => <SongRow key={track.id} track={track} index={i + 1} queue={picks}/>)}</Section>
-    <Section title="Quick picks"><div className="album-grid">{picks.map((track) => <button className="album-card" key={`card-${track.id}`} onClick={() => playTrack(track, picks)}><div className="cover"><CoverImage src={track.thumbnail} alt=""/><span><Play size={18} fill="currentColor"/></span></div><b>{track.title}</b><small>{track.artist}</small></button>)}</div></Section>
-  </div>
+  const { playTrack, history, favorites, currentTrack, isPlaying, setPlaying, addToQueue } = usePlayerStore()
+  const { user } = useAuthStore()
+
+  // Carousel de destacados
+  const featuredTracks = useMemo(() => picks.slice(0, 4), [])
+  const [featuredIndex, setFeaturedIndex] = useState(0)
+  const currentFeatured = featuredTracks[featuredIndex] ?? featuredTracks[0]
+
+  // Filtro de categorías / estados de ánimo
+  const [activeMood, setActiveMood] = useState('all')
+
+  // Saludo según la hora del día
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours()
+    if (hour >= 5 && hour < 12) return 'Buenos días'
+    if (hour >= 12 && hour < 19) return 'Buenas tardes'
+    return 'Buenas noches'
+  }, [])
+
+  // Escuchado recientemente: Si el usuario tiene historial real, mostramos los primeros 6 tracks del historial.
+  // Si no tiene nada, usamos tracks seleccionados de picks como fallback elegante.
+  const recentTracks: Track[] = useMemo(() => {
+    if (history && history.length > 0) {
+      return history.slice(0, 6)
+    }
+    return picks.slice(0, 5)
+  }, [history])
+
+  // Filtrado de canciones de Quick Picks según el mood seleccionado
+  const filteredQuickPicks = useMemo(() => {
+    if (activeMood === 'focus') {
+      return [picks[1], picks[2], picks[8], picks[0]]
+    }
+    if (activeMood === 'relax') {
+      return [picks[1], picks[0], picks[4], picks[8]]
+    }
+    if (activeMood === 'energy') {
+      return [picks[3], picks[5], picks[6], picks[7]]
+    }
+    if (activeMood === 'night') {
+      return [picks[2], picks[0], picks[5], picks[8]]
+    }
+    return picks
+  }, [activeMood])
+
+  const nextFeatured = () => {
+    setFeaturedIndex((prev) => (prev + 1) % featuredTracks.length)
+  }
+
+  const prevFeatured = () => {
+    setFeaturedIndex((prev) => (prev - 1 + featuredTracks.length) % featuredTracks.length)
+  }
+
+  const isCurrentFeaturedPlaying = currentTrack?.id === currentFeatured.id && isPlaying
+
+  const handlePlayFeatured = () => {
+    if (currentTrack?.id === currentFeatured.id) {
+      setPlaying(!isPlaying)
+    } else {
+      playTrack(currentFeatured, featuredTracks)
+    }
+  }
+
+  return (
+    <div className="page home-page">
+      {/* 1) Encabezado dinámico y filtros de mood */}
+      <div className="home-heading-wrap">
+        <div className="home-heading">
+          <span className="eyebrow">
+            {user?.username ? `HOLA, ${user.username.toUpperCase()}` : 'TU ESPACIO, TU MÚSICA'}
+          </span>
+          <h1>{greeting}.</h1>
+          <p>Música pensada para acompañar tu ritmo y tus momentos.</p>
+        </div>
+
+        {/* Chips de categorías y estados de ánimo */}
+        <div className="home-mood-chips" role="tablist" aria-label="Categorías de música">
+          {moodCategories.map((mood) => (
+            <button
+              key={mood.id}
+              type="button"
+              role="tab"
+              aria-selected={activeMood === mood.id}
+              className={`mood-chip ${activeMood === mood.id ? 'active' : ''}`}
+              onClick={() => setActiveMood(mood.id)}
+            >
+              {mood.id === 'focus' && <Sparkles size={13} />}
+              {mood.id === 'energy' && <Flame size={13} />}
+              {mood.id === 'night' && <TrendingUp size={13} />}
+              <span>{mood.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 2) Hero Interactivo / Destacado para escuchar ahora con Carrusel */}
+      <section className="hero hero-enhanced">
+        <div className="hero-art-container">
+          <div className="hero-art">
+            <CoverImage src={currentFeatured.thumbnail} alt={currentFeatured.title} />
+          </div>
+          <div className="hero-art-glow" />
+        </div>
+
+        <div className="hero-copy">
+          <div className="hero-badge-row">
+            <span className="eyebrow">DESTACADO · PARA ESCUCHAR AHORA</span>
+            <span className="hero-tag">EXCLUSIVO SONORA</span>
+          </div>
+
+          <h2>{currentFeatured.title}</h2>
+          <p>
+            {currentFeatured.artist} <span className="hero-dot">·</span> {currentFeatured.album}
+          </p>
+
+          <div className="hero-actions">
+            <button
+              type="button"
+              className="primary hero-play-btn"
+              onClick={handlePlayFeatured}
+              aria-label={isCurrentFeaturedPlaying ? 'Pausar destacado' : 'Reproducir destacado'}
+            >
+              <Play size={17} fill="currentColor" />
+              <span>{isCurrentFeaturedPlaying ? 'Pausar' : 'Reproducir'}</span>
+            </button>
+
+            <button
+              type="button"
+              className="secondary hero-action-btn"
+              title="Agregar a la cola"
+              onClick={() => addToQueue(currentFeatured)}
+            >
+              <ListPlus size={16} />
+              <span>A la cola</span>
+            </button>
+
+            <button
+              type="button"
+              className="secondary hero-action-btn"
+              title="Reproducción aleatoria del catálogo"
+              onClick={() => {
+                const randomTrack = picks[Math.floor(Math.random() * picks.length)]
+                playTrack(randomTrack, picks)
+              }}
+            >
+              <Shuffle size={16} />
+              <span>Aleatorio</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Controles de carrusel en el hero */}
+        <div className="hero-carousel-nav">
+          <button
+            type="button"
+            className="hero-nav-arrow"
+            onClick={prevFeatured}
+            aria-label="Destacado anterior"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <span className="hero-index">
+            {String(featuredIndex + 1).padStart(2, '0')} <i>/</i> {String(featuredTracks.length).padStart(2, '0')}
+          </span>
+          <button
+            type="button"
+            className="hero-nav-arrow"
+            onClick={nextFeatured}
+            aria-label="Siguiente destacado"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      </section>
+
+      {/* 3) Acceso rápido en tarjetas grandes (Mixes diarios / Estaciones de humor) */}
+      <section className="section home-mixes-section">
+        <div className="section-title">
+          <div>
+            <h2>Mixes pensados para vos</h2>
+            <small className="section-subtitle">Selecciones continuas que evolucionan según lo que te gusta</small>
+          </div>
+        </div>
+
+        <div className="home-mix-grid">
+          {mixCards.map((mix) => (
+            <div
+              key={mix.id}
+              className="home-mix-card"
+              style={{ background: mix.gradient }}
+              onClick={() => playTrack(mix.tracks[0], mix.tracks)}
+            >
+              <div className="mix-card-top">
+                <span className="mix-tag">{mix.tag}</span>
+                <button
+                  type="button"
+                  className="mix-play-btn"
+                  title={`Reproducir ${mix.title}`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    playTrack(mix.tracks[0], mix.tracks)
+                  }}
+                >
+                  <Play size={18} fill="currentColor" />
+                </button>
+              </div>
+
+              <div className="mix-card-body">
+                <h3>{mix.title}</h3>
+                <p>{mix.description}</p>
+              </div>
+
+              <div className="mix-card-thumbs">
+                {mix.tracks.slice(0, 3).map((t, idx) => (
+                  <img key={`${mix.id}-thumb-${idx}`} src={t.thumbnail} alt="" className="mix-mini-art" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 4) Escuchado recientemente (con soporte de historial real del usuario) */}
+      <Section title="Escuchado recientemente">
+        <div className="section-subtitle-bar">
+          <small className="section-subtitle">
+            {history && history.length > 0
+              ? 'Tus últimas canciones reproducidas en esta sesión'
+              : 'Selección inspirada en tus últimos descubrimientos'}
+          </small>
+        </div>
+        <div className="list-head">
+          <span>#</span>
+          <span>TÍTULO</span>
+          <span>ÁLBUM</span>
+          <span></span>
+          <span>DURACIÓN</span>
+          <span></span>
+        </div>
+        {recentTracks.map((track, i) => (
+          <SongRow
+            key={`recent-${track.id}-${i}`}
+            track={track}
+            index={i + 1}
+            queue={recentTracks}
+          />
+        ))}
+      </Section>
+
+      {/* 5) Quick picks dinámicos según el mood seleccionado */}
+      <Section title={activeMood === 'all' ? 'Quick picks' : `Picks para ${moodCategories.find(m => m.id === activeMood)?.label || 'este momento'}`}>
+        <div className="album-grid">
+          {filteredQuickPicks.map((track) => (
+            <button
+              className="album-card"
+              key={`quick-${track.id}`}
+              onClick={() => playTrack(track, filteredQuickPicks)}
+            >
+              <div className="cover">
+                <CoverImage src={track.thumbnail} alt={track.title} />
+                <span>
+                  <Play size={18} fill="currentColor" />
+                </span>
+              </div>
+              <b>{track.title}</b>
+              <small>{track.artist}</small>
+            </button>
+          ))}
+        </div>
+      </Section>
+
+      {/* 6) Si el usuario tiene favoritos, mostrar sección especial de favoritos destacados */}
+      {favorites && favorites.length > 0 && (
+        <Section title="Tus favoritos del momento">
+          <div className="album-grid">
+            {favorites.slice(0, 5).map((track) => (
+              <button
+                className="album-card"
+                key={`fav-card-${track.id}`}
+                onClick={() => playTrack(track, favorites)}
+              >
+                <div className="cover">
+                  <CoverImage src={track.thumbnail} alt={track.title} />
+                  <span>
+                    <Play size={18} fill="currentColor" />
+                  </span>
+                </div>
+                <b>{track.title}</b>
+                <small>{track.artist}</small>
+              </button>
+            ))}
+          </div>
+        </Section>
+      )}
+    </div>
+  )
 }

@@ -75,7 +75,7 @@ Al iniciar sesión, Sonora importa una vez los favoritos e historial ya almacena
 
 ## Recomendaciones y estadísticas
 
-La navegación incluye **Para vos** y **Estadísticas**. El mix diario se guarda por usuario y fecha (32 canciones cuando las fuentes devuelven candidatos), así no cambia al recargar. YouTube Music se usa solo en el backend para radios con `get_watch_playlist(..., radio=True)` y búsquedas de canciones filtradas; el orden se decide localmente con afinidad por canción, artista y género, recencia, favoritos, saltos tempranos y reglas de diversidad.
+La navegación incluye **Para vos** y **Estadísticas**. El mix diario se guarda por usuario y fecha (32 canciones cuando las fuentes devuelven candidatos), así no cambia al recargar; se renueva al menos cada 12 horas al consultarlo o mediante el botón discreto de actualización, con cooldown de cinco minutos por cuenta. Inicio usa ese mismo mix para Quick picks y selecciones personalizadas. Al elegir un resultado de búsqueda, la reproducción comienza enseguida y una cola breve se genera usando esa canción como semilla junto con las afinidades de la cuenta, nunca con los otros resultados de búsqueda. YouTube Music se usa solo en el backend para radios con `get_watch_playlist(..., radio=True)` y búsquedas de canciones filtradas; el orden se decide localmente con afinidad por canción, artista y género, recencia, favoritos, saltos tempranos y reglas de diversidad.
 
 La app conserva sesiones detalladas de escucha por 180 días y agrega tiempo, reproducciones, completados y saltos en tablas históricas. El tiempo escuchado procede del progreso real del elemento de audio. Los agregados permiten conservar estadísticas de todo el tiempo sin crecimiento ilimitado de eventos. Las migraciones e índices están en `backend/migrations/`.
 
@@ -106,6 +106,8 @@ La API disponible es:
 - `GET /api/albums/{album_id}` — detalle y tracks de álbum.
 - `GET /api/playlists/{playlist_id}` — detalle y tracks de playlist.
 - `GET /api/recommendations` y `/api/recommendations/queue` — mix diario persistente y cola personalizada.
+- `POST /api/recommendations/queue` — cola personalizada tomando la pista seleccionada como semilla.
+- `POST /api/recommendations/refresh` — regenera el mix diario con las señales actuales de la cuenta.
 - `POST /api/listening/events` — señales de inicio, progreso, completo y salto desde el reproductor autenticado.
 - `GET /api/statistics?range=today|7d|30d|all|custom` — agregados de escucha y rankings por período.
 

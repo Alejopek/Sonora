@@ -104,6 +104,8 @@ export type Recommendation = Track & { reason: string; score: number }
 export type DailyMix = { date: string; title: string; tracks: Recommendation[]; isEmpty: boolean }
 export const getDailyMix = () => request<DailyMix>('/recommendations')
 export const getRecommendationQueue = () => request<{ tracks: Recommendation[]; title: string }>('/recommendations/queue')
+export const getSeededRecommendationQueue = (track: SavedTrack) => request<{ tracks: Recommendation[]; title: string }>('/recommendations/queue', { method: 'POST', body: JSON.stringify(track) })
+export const refreshDailyMix = () => request<DailyMix>('/recommendations/refresh', { method: 'POST' })
 export const saveRecommendationPreferences = (seedTerms: string[]) => request<{ seedTerms: string[] }>('/recommendations/preferences', { method: 'PUT', body: JSON.stringify({ seedTerms }) })
 export const sendRecommendationFeedback = (track: SavedTrack, action: 'less' | 'exclude') => request<{ ok: boolean }>('/recommendations/feedback', { method: 'POST', body: JSON.stringify({ track, action }) })
 export type StatisticItem = { name?: string; title?: string; artist?: string; thumbnail?: string; listenedSeconds: number; plays: number }

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   ChevronLeft,
   ChevronRight,
@@ -10,7 +11,8 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { CoverImage } from '../components/CoverImage'
-import { picks, mixCards, moodCategories } from '../lib/data'
+import { picks, moodCategories } from '../lib/data'
+import { getDailyMix } from '../services/api'
 import { usePlayerStore } from '../stores/player-store'
 import { useAuthStore } from '../stores/auth-store'
 import { Section } from '../components/Section'
@@ -20,9 +22,12 @@ import type { Track } from '../types/music'
 export function HomePage() {
   const { playTrack, history, favorites, currentTrack, isPlaying, setPlaying, addToQueue } = usePlayerStore()
   const { user } = useAuthStore()
+  const token = useAuthStore((state) => state.token)
+  const { data: personalMix } = useQuery({ queryKey: ['daily-mix'], queryFn: getDailyMix, enabled: Boolean(token), staleTime: 5 * 60_000, retry: false })
+  const personalTracks = personalMix?.tracks ?? []
 
   // Carousel de destacados
-  const featuredTracks = useMemo(() => picks.slice(0, 4), [])
+  const featuredTracks = useMemo(() => personalTracks.length ? personalTracks.slice(0, 4) : picks.slice(0, 4), [personalMix])
   const [featuredIndex, setFeaturedIndex] = useState(0)
   const currentFeatured = featuredTracks[featuredIndex] ?? featuredTracks[0]
 
@@ -48,6 +53,7 @@ export function HomePage() {
 
   // Filtrado de canciones de Quick Picks según el mood seleccionado
   const filteredQuickPicks = useMemo(() => {
+    if (personalTracks.length) return personalTracks.slice(0, 8)
     if (activeMood === 'focus') {
       return [picks[1], picks[2], picks[8], picks[0]]
     }
@@ -61,7 +67,7 @@ export function HomePage() {
       return [picks[2], picks[0], picks[5], picks[8]]
     }
     return picks
-  }, [activeMood])
+  }, [activeMood, personalTracks])
 
   const nextFeatured = () => {
     setFeaturedIndex((prev) => (prev + 1) % featuredTracks.length)
@@ -161,8 +167,8 @@ export function HomePage() {
       >
         <div className="hero-copy">
           <div className="hero-badge-row">
-            <span className="eyebrow">DESTACADO · PARA ESCUCHAR AHORA</span>
-            <span className="hero-tag">EXCLUSIVO SONORA</span>
+            <span className="eyebrow">{personalTracks.length ? 'UNA SEÑAL DE TU MIX DIARIO' : 'DESTACADO · PARA ESCUCHAR AHORA'}</span>
+            {!personalTracks.length && <span className="hero-tag">SELECCIÓN INICIAL</span>}
           </div>
 
           <h2>{currentFeatured.title}</h2>
@@ -252,12 +258,15 @@ export function HomePage() {
         </div>
 
         <div className="home-mix-grid">
-          {mixCards.map((mix) => (
+          {(personalTracks.length ? [
+            { id: 'daily-personal', title: 'Tu mix diario', description: 'Una selección que combina afinidad y descubrimiento desde tus escuchas.', tag: 'HECHO PARA VOS', tracks: personalTracks.slice(0, 16) },
+            { id: 'discover-personal', title: 'Cerca de tus gustos', description: 'Canciones relacionadas con lo que venís escuchando.', tag: 'PARA DESCUBRIR', tracks: personalTracks.slice(8, 24).length ? personalTracks.slice(8, 24) : personalTracks.slice(0, 12) },
+          ] : !user ? [{ id: 'starter', title: 'Una selección para explorar', description: 'Iniciá sesión para recibir mixes que aprendan de tus escuchas.', tag: 'PARA EMPEZAR', tracks: picks.slice(0, 8) }] : []).map((mix) => (
             <div
               key={mix.id}
               className="home-mix-card"
-              style={{ background: mix.gradient }}
-              onClick={() => playTrack(mix.tracks[0], mix.tracks)}
+              style={{ background: 'rgb(var(--theme-rgb) / .09)' }}
+              onClick={() => mix.tracks[0] && playTrack(mix.tracks[0], mix.tracks)}
             >
               <div className="mix-card-top">
                 <span className="mix-tag">{mix.tag}</span>
@@ -265,6 +274,7 @@ export function HomePage() {
                   type="button"
                   className="mix-play-btn"
                   title={`Reproducir ${mix.title}`}
+                  disabled={!mix.tracks.length}
                   onClick={(e) => {
                     e.stopPropagation()
                     playTrack(mix.tracks[0], mix.tracks)
@@ -295,7 +305,7 @@ export function HomePage() {
           <small className="section-subtitle">
             {history && history.length > 0
               ? 'Tus últimas canciones reproducidas en esta sesión'
-              : 'Selección inspirada en tus últimos descubrimientos'}
+              : user ? 'Una selección inicial para empezar a explorar' : 'Una selección para explorar'}
           </small>
         </div>
         <div className="list-head">
@@ -317,9 +327,9 @@ export function HomePage() {
       </Section>
 
       {/* 5) Quick picks dinámicos según el mood seleccionado */}
-      <Section title={activeMood === 'all' ? 'Quick picks' : `Picks para ${moodCategories.find(m => m.id === activeMood)?.label || 'este momento'}`}>
+      <Section title={personalTracks.length ? 'Quick picks para vos' : activeMood === 'all' ? 'Quick picks' : `Picks para ${moodCategories.find(m => m.id === activeMood)?.label || 'este momento'}`}>
         <div className="album-grid">
-          {filteredQuickPicks.map((track) => (
+        {filteredQuickPicks.map((track) => (
             <button
               className="album-card"
               key={`quick-${track.id}`}
@@ -335,6 +345,7 @@ export function HomePage() {
               <small>{track.artist}</small>
             </button>
           ))}
+          {!personalTracks.length && user && <p className="personal-recommendation-empty">Estamos reuniendo tus primeras señales. Mientras tanto, estas canciones son una selección inicial.</p>}
         </div>
       </Section>
 

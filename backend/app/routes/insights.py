@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import builtins
 from collections import Counter, defaultdict
 from datetime import date, datetime, timedelta, timezone
 
@@ -222,6 +223,14 @@ async def _mix_response(session: AsyncSession, mix: DailyMix, user_id: int) -> d
 async def daily_recommendations(user: User = Depends(current_user), session: AsyncSession = Depends(get_session)):
     mix_day = datetime.now(timezone.utc).date()
     mix = await session.scalar(select(DailyMix).where(DailyMix.user_id == user.id, DailyMix.mix_date == mix_day))
+    if mix is not None:
+        created_at = mix.created_at
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        if created_at < datetime.now(timezone.utc) - timedelta(hours=12):
+            await session.execute(delete(DailyMix).where(DailyMix.id == mix.id))
+            await session.commit()
+            mix = None
     if mix is None:
         mix = await _create_mix(session, user, mix_day)
     return await _mix_response(session, mix, user.id)
@@ -233,6 +242,43 @@ async def recommendation_queue(user: User = Depends(current_user), session: Asyn
     # The persisted daily order is already diversity-aware. A queue gets a concise,
     # stable slice so one click never creates an unbounded playlist.
     return {'tracks': data['tracks'][:18], 'title': 'Tu cola para ahora'}
+
+
+@router.post('/recommendations/queue')
+async def seeded_recommendation_queue(track: TrackInput, user: User = Depends(current_user), session: AsyncSession = Depends(get_session)):
+    """Build a concise queue around the selected song and the user's taste profile."""
+    by_type, affinity_tracks, exclusions, favorites = await _profile(session, user.id)
+    preference = await session.get(RecommendationPreference, user.id)
+    seed_terms = [term for term in (preference.seed_terms if preference else '').split(',') if term]
+    artist_queries = [row.label for row in (await session.scalars(select(UserEntityAffinity).where(UserEntityAffinity.user_id == user.id, UserEntityAffinity.entity_type == 'artist').order_by(UserEntityAffinity.affinity_score.desc()).limit(3))).all()]
+    genre_queries = [row.label for row in (await session.scalars(select(UserEntityAffinity).where(UserEntityAffinity.user_id == user.id, UserEntityAffinity.entity_type == 'genre').order_by(UserEntityAffinity.affinity_score.desc()).limit(2))).all()]
+    candidates = await asyncio.to_thread(youtube_candidates, [track.video_id, *(row.video_id for row in affinity_tracks[:2])], [*artist_queries, *genre_queries, *seed_terms])
+    ranked = rank_and_diversify(
+        candidates, artist_scores=by_type['artist'], genre_scores=by_type['genre'],
+        track_scores={row.video_id: row.affinity_score for row in affinity_tracks},
+        skipped_tracks={row.video_id for row in affinity_tracks if row.skipped_count > row.play_count},
+        excluded_tracks=exclusions | {track.video_id}, favorite_tracks=favorites, limit=17,
+    )
+    # A sparse provider response should not make song selection fail. Reuse the stable
+    # daily mix as a local fallback, still excluding the selected song and exclusions.
+    if not ranked:
+        mix_day = datetime.now(timezone.utc).date()
+        mix = await session.scalar(select(DailyMix).where(DailyMix.user_id == user.id, DailyMix.mix_date == mix_day))
+        if mix is None:
+            mix = await _create_mix(session, user, mix_day)
+        fallback = await _mix_response(session, mix, user.id)
+        ranked = [item for item in fallback['tracks'] if item['id'] != track.video_id][:17]
+    return {'tracks': ranked, 'title': 'Tu cola para ahora'}
+
+
+@router.post('/recommendations/refresh')
+async def refresh_recommendations(user: User = Depends(current_user), session: AsyncSession = Depends(get_session)):
+    """Explicitly rebuild today's persisted mix from the latest listening signals."""
+    mix_day = datetime.now(timezone.utc).date()
+    await session.execute(delete(DailyMix).where(DailyMix.user_id == user.id, DailyMix.mix_date == mix_day))
+    await session.commit()
+    mix = await _create_mix(session, user, mix_day)
+    return await _mix_response(session, mix, user.id)
 
 
 @router.post('/recommendations/feedback')
@@ -271,6 +317,16 @@ def _streak(days: set[date], today: date) -> int:
         value += 1
         cursor -= timedelta(days=1)
     return value
+
+
+def _activity_series(activity_start: date, end_day: date, daily_map: dict[date, int]) -> list[dict[str, int | str]]:
+    return [
+        {
+            'date': (activity_start + timedelta(days=index)).isoformat(),
+            'listenedSeconds': daily_map.get(activity_start + timedelta(days=index), 0),
+        }
+        for index in builtins.range((end_day - activity_start).days + 1)
+    ]
 
 
 @router.get('/statistics')
@@ -319,7 +375,7 @@ async def statistics(
         hours = Counter(row.started_at.hour for row in sessions if row.listened_seconds)
     daily_map = {row.day: row.listened_seconds for row in daily}
     activity_start = start_day or (min(daily_map) if daily_map else end_day)
-    activity = [{'date': (activity_start + timedelta(days=index)).isoformat(), 'listenedSeconds': daily_map.get(activity_start + timedelta(days=index), 0)} for index in range((end_day - activity_start).days + 1)]
+    activity = _activity_series(activity_start, end_day, daily_map)
     day_set = {row.day for row in daily if row.listened_seconds}
     previous_seconds = None
     if start_day:

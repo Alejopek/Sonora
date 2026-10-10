@@ -3,7 +3,8 @@ import unittest
 from app.services.listening import early_skip, meaningful_play, progress_delta
 from app.services.recommendations import rank_and_diversify
 from app.main import app
-from app.routes.insights import _range_dates
+from app.routes.insights import _activity_series, _range_dates
+from datetime import date
 
 
 def candidate(id, artist, album, genre):
@@ -35,6 +36,20 @@ class ListeningSignalTests(unittest.TestCase):
         operation = app.openapi()['paths']['/api/statistics']['get']
         query_names = {parameter['name'] for parameter in operation['parameters'] if parameter['in'] == 'query'}
         self.assertIn('range', query_names)
+
+    def test_seeded_queue_and_mix_refresh_routes_are_registered(self):
+        paths = app.openapi()['paths']
+        self.assertIn('post', paths['/api/recommendations/queue'])
+        self.assertIn('post', paths['/api/recommendations/refresh'])
+
+    def test_statistics_activity_series_is_safe_when_range_name_is_shadowed(self):
+        self.assertEqual(
+            _activity_series(date(2026, 10, 1), date(2026, 10, 2), {date(2026, 10, 1): 12}),
+            [
+                {'date': '2026-10-01', 'listenedSeconds': 12},
+                {'date': '2026-10-02', 'listenedSeconds': 0},
+            ],
+        )
 
 
 class RecommendationRankingTests(unittest.TestCase):

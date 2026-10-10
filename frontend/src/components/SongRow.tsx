@@ -18,7 +18,7 @@ import {
 import { CoverImage } from './CoverImage'
 import { AddToPlaylistModal } from './AddToPlaylistModal'
 import { savedTrack, usePlayerStore } from '../stores/player-store'
-import { sendRecommendationFeedback } from '../services/api'
+import { getSeededRecommendationQueue, sendRecommendationFeedback } from '../services/api'
 import { useAuthStore } from '../stores/auth-store'
 import type { Track } from '../types/music'
 
@@ -29,6 +29,7 @@ export function SongRow({
   onMore,
   moreTitle,
   recommendation = false,
+  personalizedQueueOnPlay = false,
   onFeedback,
   compact = false,
 }: {
@@ -38,6 +39,7 @@ export function SongRow({
   onMore?: () => void
   moreTitle?: string
   recommendation?: boolean
+  personalizedQueueOnPlay?: boolean
   onFeedback?: (id: string) => void
   compact?: boolean
 }) {
@@ -65,7 +67,16 @@ export function SongRow({
     if (active) {
       setPlaying(!isPlaying)
     } else {
-      playTrack(track, queue)
+      if (personalizedQueueOnPlay) {
+        playTrack(track, [track])
+        if (token) void getSeededRecommendationQueue(savedTrack(track)).then((response) => {
+          if (usePlayerStore.getState().currentTrack?.id === track.id) {
+            usePlayerStore.getState().appendQueueTracks(response.tracks)
+          }
+        }).catch(() => undefined)
+      } else {
+        playTrack(track, queue)
+      }
     }
   }
 

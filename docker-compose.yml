@@ -19,7 +19,7 @@ services:
       - LASTFM_API_SECRET=${LASTFM_API_SECRET:-}
       - LASTFM_CALLBACK_URL=${LASTFM_CALLBACK_URL:-}
       - LAYA_BASE_URL=${LAYA_BASE_URL:-}
-      - LAYA_MODEL=${LAYA_MODEL:-laya}
+      - LAYA_API_KEY=${LAYA_API_KEY:-}
       - LAYA_TIMEOUT_SECONDS=${LAYA_TIMEOUT_SECONDS:-2.5}
     networks:
       - sonora-net

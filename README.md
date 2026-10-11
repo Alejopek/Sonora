@@ -59,7 +59,7 @@ Opcionalmente se puede definir `VITE_API_URL` en `frontend/.env` si la API no se
 
 La integración de Last.fm permite vincular una cuenta desde el menú del avatar, muestra sus canciones escuchadas recientemente y usa artistas recientes y etiquetas del perfil para contextualizar las búsquedas de ánimo. Cada canción reciente puede buscarse en Sonora para reproducirla. Para habilitarla, crea una API account en Last.fm y define `LASTFM_API_KEY` y `LASTFM_API_SECRET` en el entorno del backend; `LASTFM_CALLBACK_URL` solo hace falta si la URL pública del backend no se puede inferir de la solicitud. La API de Last.fm no proporciona BPM, por lo que esa integración no puede añadir datos ni filtros de tempo.
 
-Laya se conecta desde el backend a su API local `laya-serve` (`/v1/systemone`). En Docker se usa `LAYA_BASE_URL=http://host.docker.internal:8055`; `LAYA_API_KEY` protege la llamada y `LAYA_TIMEOUT_SECONDS` limita la espera (0.2–8 segundos, 8 por defecto). Laya compara como máximo 12 candidatos en una inferencia; tras un timeout o error, Sonora aplica una pausa de cinco minutos antes de volver a intentarlo porque un timeout HTTP no cancela la inferencia CPU del modelo. Si Laya no responde, se mantiene el orden determinista actual. Solo se envían etiquetas de afinidad y metadatos de candidatos, nunca historial detallado. Laya recibe texto, no audio, por lo que no se usa para inventar BPM. Un BPM fiable requiere análisis de la señal de audio y una caché que limite descargas y CPU.
+Laya se conecta desde el backend a su API local `laya-serve` (`/v1/systemone`). En Docker se usa `LAYA_BASE_URL=http://host.docker.internal:8055`; `LAYA_API_KEY` protege la llamada y `LAYA_TIMEOUT_SECONDS` limita la espera a 0.2–8 segundos (Compose usa 2.5 segundos por defecto). Laya compara como máximo 12 candidatos en una inferencia; tras un timeout o error, Sonora aplica una pausa de cinco minutos antes de volver a intentarlo porque un timeout HTTP no cancela la inferencia CPU del modelo. Si Laya no responde, se mantiene el orden determinista actual. Solo se envían etiquetas de afinidad y metadatos de candidatos, nunca historial detallado. Laya recibe texto, no audio, por lo que no se usa para inventar BPM. Un BPM fiable requiere análisis de la señal de audio y una caché que limite descargas y CPU.
 
 ### Despliegue con Docker y Túnel
 
@@ -85,7 +85,7 @@ La navegación incluye **Para vos** y **Estadísticas**. El mix diario se guarda
 
 La app conserva sesiones detalladas de escucha por 180 días y agrega tiempo, reproducciones, completados y saltos en tablas históricas. El tiempo escuchado procede del progreso real del elemento de audio. Los agregados permiten conservar estadísticas de todo el tiempo sin crecimiento ilimitado de eventos. Las migraciones e índices están en `backend/migrations/`.
 
-Last.fm y Laya son opcionales: definí `LASTFM_API_KEY` y `LASTFM_API_SECRET` para habilitar Last.fm, o `LAYA_BASE_URL` y `LAYA_MODEL` para conectar el modelo local. Ninguno es necesario para que el resto de Sonora funcione.
+Last.fm y Laya son opcionales: definí `LASTFM_API_KEY` y `LASTFM_API_SECRET` para habilitar Last.fm, o `LAYA_BASE_URL` y `LAYA_API_KEY` para conectar el modelo local. `LAYA_TIMEOUT_SECONDS` permite limitar la espera. Ninguno es necesario para que el resto de Sonora funcione.
 
 ## Arquitectura
 

@@ -59,6 +59,8 @@ Opcionalmente se puede definir `VITE_API_URL` en `frontend/.env` si la API no se
 
 La integración de Last.fm permite vincular una cuenta desde el menú del avatar, muestra sus canciones escuchadas recientemente y usa artistas recientes y etiquetas del perfil para contextualizar las búsquedas de ánimo. Cada canción reciente puede buscarse en Sonora para reproducirla. Para habilitarla, crea una API account en Last.fm y define `LASTFM_API_KEY` y `LASTFM_API_SECRET` en el entorno del backend; `LASTFM_CALLBACK_URL` solo hace falta si la URL pública del backend no se puede inferir de la solicitud. La API de Last.fm no proporciona BPM, por lo que esa integración no puede añadir datos ni filtros de tempo.
 
+Laya es opcional y se conecta desde el backend a un endpoint local compatible con la API de chat de Ollama (`/api/chat`). En Docker, configura `LAYA_BASE_URL=http://host.docker.internal:11434` y `LAYA_MODEL` con el nombre exacto del modelo; `LAYA_TIMEOUT_SECONDS` limita la espera (0.2–8 segundos, 2.5 por defecto). Laya solo ordena candidatos ya obtenidos por Sonora, con un máximo de 40 canciones por petición. Si no está configurado, no responde o devuelve datos inválidos, se mantiene el orden determinista actual. No se envían datos de cuenta ni historial detallado: solo etiquetas de afinidad y metadatos de las canciones candidatas. El modelo recibe texto, no audio; por eso no se usa para inventar BPM. Un BPM fiable requiere análisis de la señal de audio y una estrategia de caché que limite descargas y CPU.
+
 ### Despliegue con Docker y Túnel
 
 Las cuentas usan JWT y PostgreSQL; las playlists, favoritos e historial se guardan por usuario. Copiá `.env.example` a `.env`, reemplazá `JWT_SECRET` por un valor largo y aleatorio, y levantá todo con:
@@ -83,7 +85,7 @@ La navegación incluye **Para vos** y **Estadísticas**. El mix diario se guarda
 
 La app conserva sesiones detalladas de escucha por 180 días y agrega tiempo, reproducciones, completados y saltos en tablas históricas. El tiempo escuchado procede del progreso real del elemento de audio. Los agregados permiten conservar estadísticas de todo el tiempo sin crecimiento ilimitado de eventos. Las migraciones e índices están en `backend/migrations/`.
 
-Last.fm es opcional: definí `LASTFM_API_KEY` y `LASTFM_API_SECRET` en el `.env` del servidor para enriquecer recomendaciones y permitir que cada cuenta conecte su perfil. No son necesarios para que el resto de Sonora funcione y nunca se devuelven ni se registran.
+Last.fm y Laya son opcionales: definí `LASTFM_API_KEY` y `LASTFM_API_SECRET` para habilitar Last.fm, o `LAYA_BASE_URL` y `LAYA_MODEL` para conectar el modelo local. Ninguno es necesario para que el resto de Sonora funcione.
 
 ## Arquitectura
 

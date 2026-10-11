@@ -20,6 +20,7 @@ from app.schemas.account import AlbumInput, PlaybackEvent, RecommendationFeedbac
 from app.services.recommendations import genre_list, lastfm_artist_tags, rank_and_diversify, serialise_genres, track_payload, youtube_candidates
 from app.services.youtube import album_candidates
 from app.services.listening import early_skip, meaningful_play, progress_delta
+from app.services.laya import reorder_tracks
 
 router = APIRouter(prefix='/api', tags=['recommendations and statistics'])
 
@@ -222,6 +223,11 @@ async def _create_mix(session: AsyncSession, user: User, mix_day: date) -> Daily
         skipped_tracks={row.video_id for row in affinity_tracks if row.skipped_count > row.play_count},
         excluded_tracks=exclusions, favorite_tracks=favorites, limit=32,
     )
+    taste_profile = [row.label for kind in ('artist', 'genre') for row in (await session.scalars(
+        select(UserEntityAffinity).where(UserEntityAffinity.user_id == user.id, UserEntityAffinity.entity_type == kind)
+        .order_by(UserEntityAffinity.affinity_score.desc()).limit(6)
+    )).all()]
+    ranked = await asyncio.to_thread(reorder_tracks, ranked, profile=taste_profile)
     # Keep a lightweight local metadata cache. The daily mix remains valid even if
     # a provider is slow tomorrow, and no browser ever calls YouTube directly.
     ids = [item['id'] for item in ranked]
@@ -282,6 +288,21 @@ async def recommendation_queue(user: User = Depends(current_user), session: Asyn
     # The persisted daily order is already diversity-aware. A queue gets a concise,
     # stable slice so one click never creates an unbounded playlist.
     return {'tracks': data['tracks'][:18], 'title': 'Tu cola para ahora'}
+
+
+@router.get('/recommendations/mood')
+async def mood_recommendations(mood: str = Query(min_length=1, max_length=24), user: User = Depends(current_user), session: AsyncSession = Depends(get_session)):
+    """Personalize a mood shelf from the existing bounded daily mix."""
+    allowed = {'focus', 'relax', 'energy', 'night'}
+    if mood not in allowed:
+        raise HTTPException(status_code=422, detail='Sensación no válida')
+    data = await daily_recommendations(user, session)
+    taste = [row.label for kind in ('artist', 'genre') for row in (await session.scalars(
+        select(UserEntityAffinity).where(UserEntityAffinity.user_id == user.id, UserEntityAffinity.entity_type == kind)
+        .order_by(UserEntityAffinity.affinity_score.desc()).limit(6)
+    )).all()]
+    tracks = await asyncio.to_thread(reorder_tracks, data['tracks'], profile=taste, mood=mood)
+    return {'tracks': tracks[:12], 'mood': mood}
 
 
 @router.post('/recommendations/queue')

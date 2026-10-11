@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { CoverImage } from '../components/CoverImage'
 import { picks, moodCategories } from '../lib/data'
-import { getDailyMix, getLastFmMoodProfile, getLastFmStatus, getRecommendedAlbums, searchMusic } from '../services/api'
+import { getDailyMix, getLastFmMoodProfile, getLastFmStatus, getMoodRecommendations, getRecommendedAlbums, searchMusic } from '../services/api'
 import { usePlayerStore } from '../stores/player-store'
 import { useAuthStore } from '../stores/auth-store'
 import { Section } from '../components/Section'
@@ -51,8 +51,16 @@ export function HomePage() {
     ...(lastFmProfile?.recentArtists.slice(0, 2) ?? []),
   ].join(' ')
   const { data: moodTracks, isLoading: moodTracksLoading, isError: moodTracksError } = useQuery({
-    queryKey: ['mood-tracks', activeMood, lastFmTasteTerms],
-    queryFn: async () => (await searchMusic(`${moodSearchQueries[activeMood]} ${lastFmTasteTerms}`.trim(), 'songs')).songs,
+    queryKey: ['mood-tracks', user?.id ?? 'anonymous', activeMood, lastFmTasteTerms],
+    queryFn: async () => {
+      if (token) {
+        try {
+          const personalized = await getMoodRecommendations(activeMood)
+          if (personalized.tracks.length) return personalized.tracks
+        } catch { /* Search remains available if the personalized endpoint is unavailable. */ }
+      }
+      return (await searchMusic(`${moodSearchQueries[activeMood]} ${lastFmTasteTerms}`.trim(), 'songs')).songs
+    },
     enabled: activeMood !== 'all',
     staleTime: 10 * 60_000,
     retry: false,

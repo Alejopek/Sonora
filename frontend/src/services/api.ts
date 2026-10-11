@@ -128,6 +128,7 @@ export const recordListeningEvent = (event: ListeningEvent) => request<{ accepte
 export type Recommendation = Track & { reason: string; score: number }
 export type DailyMix = { date: string; title: string; tracks: Recommendation[]; isEmpty: boolean }
 export const getDailyMix = () => request<DailyMix>('/recommendations')
+export const getMoodRecommendations = (mood: string) => request<{ tracks: Recommendation[]; mood: string }>(`/recommendations/mood?mood=${encodeURIComponent(mood)}`)
 export const getRecommendationQueue = () => request<{ tracks: Recommendation[]; title: string }>('/recommendations/queue')
 export const getSeededRecommendationQueue = (track: SavedTrack) => request<{ tracks: Recommendation[]; title: string }>('/recommendations/queue', { method: 'POST', body: JSON.stringify(track) })
 export const refreshDailyMix = () => request<DailyMix>('/recommendations/refresh', { method: 'POST' })

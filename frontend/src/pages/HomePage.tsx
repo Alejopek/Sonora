@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import {
   ChevronLeft,
@@ -90,11 +91,11 @@ export function HomePage() {
   }, [activeMood, moodTracks, personalTracks])
 
   const nextFeatured = () => {
-    setFeaturedIndex((prev) => (prev + 1) % featuredTracks.length)
+    setFeaturedIndex((prev) => Math.min(featuredTracks.length - 1, prev + 1))
   }
 
   const prevFeatured = () => {
-    setFeaturedIndex((prev) => (prev - 1 + featuredTracks.length) % featuredTracks.length)
+    setFeaturedIndex((prev) => Math.max(0, prev - 1))
   }
 
   const isCurrentFeaturedPlaying = currentTrack?.id === currentFeatured.id && isPlaying
@@ -193,10 +194,20 @@ export function HomePage() {
             {!personalTracks.length && <span className="hero-tag">SELECCIÓN INICIAL</span>}
           </div>
 
-          <h2>{currentFeatured.title}</h2>
-          <p>
-            {currentFeatured.artist} <span className="hero-dot">·</span> {currentFeatured.album}
-          </p>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentFeatured.id}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              transition={{ duration: 0.18 }}
+            >
+              <h2>{currentFeatured.title}</h2>
+              <p>
+                {currentFeatured.artist} <span className="hero-dot">·</span> {currentFeatured.album}
+              </p>
+            </motion.div>
+          </AnimatePresence>
 
           <div className="hero-actions">
             <button
@@ -239,9 +250,18 @@ export function HomePage() {
             className="hero-art-container"
             style={heroImageSlideY > 0 ? { transform: `translateY(${heroImageSlideY}px)` } : undefined}
           >
-            <div className="hero-art">
-              <CoverImage src={currentFeatured.thumbnail} alt={currentFeatured.title} />
-            </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentFeatured.id}
+                initial={{ opacity: 0, scale: 0.94 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.94 }}
+                transition={{ duration: 0.2 }}
+                className="hero-art"
+              >
+                <CoverImage src={currentFeatured.thumbnail} alt={currentFeatured.title} />
+              </motion.div>
+            </AnimatePresence>
             <div className="hero-art-glow" />
           </div>
 
@@ -251,6 +271,7 @@ export function HomePage() {
               type="button"
               className="hero-nav-arrow"
               onClick={prevFeatured}
+              disabled={featuredIndex <= 0}
               aria-label="Destacado anterior"
             >
               <ChevronLeft size={18} />
@@ -262,6 +283,7 @@ export function HomePage() {
               type="button"
               className="hero-nav-arrow"
               onClick={nextFeatured}
+              disabled={featuredIndex >= featuredTracks.length - 1}
               aria-label="Siguiente destacado"
             >
               <ChevronRight size={18} />

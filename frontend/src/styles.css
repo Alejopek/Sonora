@@ -1704,3 +1704,177 @@ body,.app-shell{background:#090d13}
   .player-album-link { max-width: 72px; font-size: 9px; }
 }
 
+/* --- Mejoras visuales: Micro-interacciones y estados de reproducción --- */
+
+/* Pausa suave del vinilo manteniendo el ángulo exacto al pausar */
+.music-art-wrap .music-record-disc {
+  animation: music-vinyl-spin 30s linear infinite;
+  animation-play-state: paused;
+}
+
+.is-playing .music-art-wrap .music-record-disc,
+.app-shell .is-playing .music-art-wrap .music-record-disc {
+  animation-play-state: running;
+}
+
+/* Animación elástica para favoritos (Heart Pop) */
+.like.liked svg,
+.music-like-btn.liked svg,
+.album-result-like.liked svg {
+  animation: sonora-heart-pop 0.32s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes sonora-heart-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.32); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .like.liked svg,
+  .music-like-btn.liked svg,
+  .album-result-like.liked svg {
+    animation: none;
+  }
+}
+
+/* Feedback táctil sutil en controles al hacer click o tap */
+.play-button:active,
+.music-play:active,
+.control:active,
+.icon-button:active,
+.hero-play-btn:active,
+.hero-action-btn:active,
+.hero-nav-arrow:active,
+.mix-play-btn:active,
+.search-clear-btn:active {
+  transform: scale(0.93);
+  transition: transform 0.08s ease;
+}
+
+/* Botón para vaciar búsqueda en SearchPage */
+.search-clear-btn {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-left: auto;
+  border-radius: 50%;
+  color: #8896a6;
+  background: transparent;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.search-clear-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f0f4f9;
+  transform: scale(1.08);
+}
+
+/* Flechas de carrusel deshabilitadas en extremos (1 y 4) */
+.hero-nav-arrow:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Esqueleto de carga para la página de Álbum */
+.skeleton-box,
+.skeleton-bar {
+  background: linear-gradient(90deg, #131b27, #1e2a3b, #131b27);
+  background-size: 200%;
+  animation: shimmer 1.3s infinite;
+  border-radius: 6px;
+}
+
+.skeleton-album-hero {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.skeleton-album-hero .skeleton-box {
+  width: 210px;
+  aspect-ratio: 1;
+  flex: none;
+  border-radius: 12px;
+}
+
+.skeleton-album-hero .skeleton-bar.skeleton-badge {
+  width: 80px;
+  height: 14px;
+  margin-bottom: 12px;
+}
+
+.skeleton-album-hero .skeleton-bar.skeleton-title {
+  width: min(320px, 80%);
+  height: 38px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+}
+
+.skeleton-album-hero .skeleton-bar.skeleton-subtitle {
+  width: min(200px, 60%);
+  height: 18px;
+  margin-bottom: 20px;
+}
+
+.skeleton-album-hero .skeleton-bar.skeleton-actions {
+  width: 160px;
+  height: 38px;
+  border-radius: 999px;
+}
+
+@media (max-width: 620px) {
+  .skeleton-album-hero .skeleton-box {
+    width: min(34vw, 140px);
+    border-radius: 8px;
+  }
+  .skeleton-album-hero .skeleton-bar.skeleton-title {
+    height: 28px;
+  }
+}
+
+/* Scrollbars globales sutiles y consistentes */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+/* Legibilidad y contraste de letras sincronizadas */
+.music-lyrics-list.has-lyrics.is-synced .music-lyric-line {
+  filter: blur(0.5px);
+  opacity: 0.52;
+}
+
+.music-lyrics-list.has-lyrics.is-synced .music-lyric-line.active {
+  filter: blur(0);
+  opacity: 1;
+}
+
+@media (max-width: 620px) {
+  .music-lyrics-list.has-lyrics.is-synced .music-lyric-line {
+    filter: none !important;
+    opacity: 0.45;
+  }
+  .music-lyrics-list.has-lyrics.is-synced .music-lyric-line.active {
+    filter: none !important;
+    opacity: 1;
+  }
+}

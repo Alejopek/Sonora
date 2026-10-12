@@ -12,7 +12,22 @@ export function AlbumPage() {
   const queryClient = useQueryClient()
   const { data: album, isPending, isError, refetch } = useQuery({ queryKey: ['album', albumId], queryFn: () => getAlbum(albumId), enabled: Boolean(albumId), retry: false })
   const { playTrack, isAlbumFavorite, toggleAlbumFavorite } = usePlayerStore()
-  if (isPending) return <div className="page state">Cargando álbum…</div>
+  if (isPending) return <div className="page album-page album-skeleton-page" aria-busy="true" aria-label="Cargando álbum">
+    <div className="album-hero skeleton-album-hero">
+      <div className="album-hero-cover skeleton-box"/>
+      <div className="album-hero-copy">
+        <div className="skeleton-bar skeleton-badge"/>
+        <div className="skeleton-bar skeleton-title"/>
+        <div className="skeleton-bar skeleton-subtitle"/>
+        <div className="skeleton-bar skeleton-actions"/>
+      </div>
+    </div>
+    <section className="section">
+      <div className="skeleton-list">
+        {[1, 2, 3, 4, 5, 6].map((item) => <div className="skeleton-row" key={item}/>)}
+      </div>
+    </section>
+  </div>
   if (isError || !album) return <div className="page state"><Disc3 size={30}/><h1>No se pudo cargar el álbum</h1><button className="secondary" onClick={() => void refetch()}>Reintentar</button></div>
   const liked = isAlbumFavorite(album.id)
   return <div className="page album-page">

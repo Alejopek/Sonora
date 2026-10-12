@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Search } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { searchMusic } from '../services/api'
 import { Section } from '../components/Section'
@@ -19,10 +19,29 @@ export function SearchPage() {
   useEffect(() => { if (qParam && qParam !== input) setInput(qParam) }, [qParam])
   const query = useDebounced(input.trim())
   const { data, isFetching, isError, refetch } = useQuery({ queryKey: ['search', query, filter], queryFn: () => searchMusic(query, filter), enabled: query.length > 1, retry: false })
+  const isMac = typeof navigator !== 'undefined' && /(Mac|iPhone|iPod|iPad)/i.test(navigator.userAgent)
+  const searchShortcut = isMac ? '⌘ K' : 'Ctrl K'
   const empty = data && !data.songs.length && !data.albums.length && (filter !== 'all' || !data.artists.length)
+
   return <div className="page search-page">
     <div className="search-intro"><h1>Buscar</h1><p>Encuentra canciones y discos para escuchar.</p></div>
-    <label className="search-field"><Search size={20}/><input autoFocus value={input} onChange={(event) => setInput(event.target.value)} placeholder="Artistas, discos, canciones…"/><kbd>⌘ K</kbd></label>
+    <label className="search-field">
+      <Search size={20}/>
+      <input autoFocus value={input} onChange={(event) => setInput(event.target.value)} placeholder="Artistas, discos, canciones…"/>
+      {input ? (
+        <button
+          type="button"
+          className="search-clear-btn"
+          onClick={() => setInput('')}
+          aria-label="Borrar búsqueda"
+          title="Borrar búsqueda"
+        >
+          <X size={16}/>
+        </button>
+      ) : (
+        <kbd>{searchShortcut}</kbd>
+      )}
+    </label>
     <div className="search-filters" role="tablist" aria-label="Filtrar búsqueda">{([{ id: 'all', label: 'Todo' }, { id: 'songs', label: 'Canciones' }, { id: 'albums', label: 'Discos' }] as const).map((item) => <button key={item.id} type="button" role="tab" aria-selected={filter === item.id} className={filter === item.id ? 'active' : ''} onClick={() => setFilter(item.id)}>{item.label}</button>)}</div>
     {isFetching && <div className="results skeleton-list">{[1,2,3,4].map((item) => <div className="skeleton-row" key={item}/>)}</div>}
     {isError && <div className="state"><p>No se pudo conectar con el catálogo.</p><button className="secondary" onClick={() => void refetch()}>Reintentar</button></div>}

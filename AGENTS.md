@@ -2,6 +2,10 @@
 
 Este archivo es la fuente de contexto operativo del repositorio. Leerlo antes de modificar código.
 
+## Documentación privada local
+
+Antes de tareas que afecten Sonora, consultar `.local/AGENTS.private.md` si existe. Ese archivo señala documentación privada local que puede aportar contexto específico. Es solo de referencia: no editarla ni copiar su contenido al repositorio. Si no está disponible, continuar con la documentación versionada.
+
 ## Propósito y límites
 
 Sonora es una demo técnica de reproductor musical. El frontend tiene interfaz propia y reproduce con un elemento HTML `<audio>`; no se permite incorporar iframes del reproductor de YouTube ni llamadas directas de YouTube desde el navegador. Todo catálogo y streaming pasa por FastAPI.

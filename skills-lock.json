@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "origin-api": {
+      "source": "cursor/plugins",
+      "sourceType": "github",
+      "skillPath": "origin-apps/skills/origin-api/SKILL.md",
+      "computedHash": "d56fb090bbd3f31cf5d39facd18702828a3ae7f032578d2b7c224263ba3b4fc7"
+    },
+    "port-github-app-to-origin": {
+      "source": "cursor/plugins",
+      "sourceType": "github",
+      "skillPath": "origin-apps/skills/port-github-app-to-origin/SKILL.md",
+      "computedHash": "afe8bf38191e2a94de7928207d545f81960c6ca060d8a5ca748f582a1ee6ec3f"
+    }
+  }
+}

@@ -1,0 +1,1 @@
+{"nodes": [{"id": "frontend_pnpm_workspace_esbuild_only_built", "label": "pnpm-workspace onlyBuiltDependencies: esbuild", "file_type": "concept", "source_file": "frontend/pnpm-workspace.yaml", "source_location": "lines 1-2", "source_url": null, "captured_at": null, "author": null, "contributor": null}], "edges": [], "hyperedges": []}

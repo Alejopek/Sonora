@@ -1,0 +1,224 @@
+{
+  "nodes": [
+    {
+      "id": "frontend_public_apple_touch_icon",
+      "label": "Apple Touch Icon (Sonora S logo)",
+      "file_type": "image",
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/apple-touch-icon.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_public_cover_placeholder_svg",
+      "label": "Cover Placeholder SVG (music note / album art fallback)",
+      "file_type": "image",
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/cover-placeholder.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_public_favicon_96x96",
+      "label": "Favicon 96x96 PNG (Sonora S logo)",
+      "file_type": "image",
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/favicon-96x96.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_public_favicon_svg",
+      "label": "Favicon SVG (Sonora S logo, AI-generated, C2PA signed)",
+      "file_type": "image",
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/favicon.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_public_web_app_manifest_192x192",
+      "label": "Web App Manifest Icon 192x192 (Sonora S logo)",
+      "file_type": "image",
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/web-app-manifest-192x192.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_public_web_app_manifest_512x512",
+      "label": "Web App Manifest Icon 512x512 (Sonora S logo, high-res)",
+      "file_type": "image",
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/web-app-manifest-512x512.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "sonora_brand_identity",
+      "label": "Sonora Brand Identity (S logo, magenta/pink palette)",
+      "file_type": "concept",
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/apple-touch-icon.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pwa_icon_set",
+      "label": "Progressive Web App Icon Set",
+      "file_type": "concept",
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/web-app-manifest-192x192.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "album_art_fallback_pattern",
+      "label": "Album Art Fallback Pattern (cover placeholder for missing artwork)",
+      "file_type": "rationale",
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/cover-placeholder.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "frontend_public_apple_touch_icon",
+      "target": "sonora_brand_identity",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/apple-touch-icon.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_public_favicon_96x96",
+      "target": "sonora_brand_identity",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/favicon-96x96.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_public_favicon_svg",
+      "target": "sonora_brand_identity",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/favicon.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_public_web_app_manifest_192x192",
+      "target": "sonora_brand_identity",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/web-app-manifest-192x192.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_public_web_app_manifest_512x512",
+      "target": "sonora_brand_identity",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/web-app-manifest-512x512.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_public_web_app_manifest_192x192",
+      "target": "pwa_icon_set",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/web-app-manifest-192x192.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_public_web_app_manifest_512x512",
+      "target": "pwa_icon_set",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/web-app-manifest-512x512.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_public_cover_placeholder_svg",
+      "target": "album_art_fallback_pattern",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/cover-placeholder.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_public_favicon_svg",
+      "target": "frontend_public_favicon_96x96",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/favicon.svg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_public_apple_touch_icon",
+      "target": "frontend_public_web_app_manifest_192x192",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/apple-touch-icon.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "sonora_app_icon_family",
+      "label": "Sonora App Icon Family (all sizes of the S logo icon)",
+      "nodes": [
+        "frontend_public_apple_touch_icon",
+        "frontend_public_favicon_96x96",
+        "frontend_public_favicon_svg",
+        "frontend_public_web_app_manifest_192x192",
+        "frontend_public_web_app_manifest_512x512"
+      ],
+      "relation": "implement",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "/home/ale/Documentos/FRONT/Proyectos Rivera/YT_Player/frontend/public/apple-touch-icon.png"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

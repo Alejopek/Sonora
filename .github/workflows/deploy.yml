@@ -24,9 +24,10 @@ jobs:
       - name: Update repository and rebuild containers
         run: |
           cd "$HOME/Sonora"
-          git fetch origin main
-          git reset --hard origin/main
-          git clean -fdx
+          git fetch origin "${GITHUB_REF}"
+          git reset --hard "${GITHUB_SHA}"
+          # Keep runner-local configuration such as .env, which Compose needs
+          # and git clean -fdx would delete along with other ignored files.
           docker compose up -d --build --remove-orphans
 
       - name: Set deployment URL

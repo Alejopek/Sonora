@@ -22,12 +22,57 @@ jobs:
       url: ${{ steps.extract-url.outputs.app_url }}
     steps:
       - name: Update repository and rebuild containers
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+          JWT_EXPIRES_HOURS: ${{ vars.JWT_EXPIRES_HOURS }}
+          SONORA_PORT: ${{ vars.SONORA_PORT }}
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_API_SECRET: ${{ secrets.LASTFM_API_SECRET }}
+          LASTFM_CALLBACK_URL: ${{ vars.LASTFM_CALLBACK_URL }}
+          LAYA_BASE_URL: ${{ vars.LAYA_BASE_URL }}
+          LAYA_API_KEY: ${{ secrets.LAYA_API_KEY }}
+          LAYA_TIMEOUT_SECONDS: ${{ vars.LAYA_TIMEOUT_SECONDS }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ vars.GITHUB_REPO }}
+          UPTIME_KUMA_DATA_DIR: ${{ vars.UPTIME_KUMA_DATA_DIR }}
+          GH_CONFIG_DIR: ${{ vars.GH_CONFIG_DIR }}
         run: |
           cd "$HOME/Sonora"
           git fetch origin "${GITHUB_REF}"
           git reset --hard "${GITHUB_SHA}"
-          # Keep runner-local configuration such as .env, which Compose needs
-          # and git clean -fdx would delete along with other ignored files.
+
+          if [ -z "$JWT_SECRET" ]; then
+            echo "::error::Configure JWT_SECRET in the Production environment secrets."
+            exit 1
+          fi
+
+          umask 077
+          cat > .env <<EOF
+          JWT_SECRET=$JWT_SECRET
+          POSTGRES_USER=${POSTGRES_USER:-sonora}
+          POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-sonora_dev_password}
+          POSTGRES_DB=${POSTGRES_DB:-sonora}
+          JWT_EXPIRES_HOURS=${JWT_EXPIRES_HOURS:-168}
+          SONORA_PORT=${SONORA_PORT:-8087}
+          LASTFM_API_KEY=$LASTFM_API_KEY
+          LASTFM_API_SECRET=$LASTFM_API_SECRET
+          LASTFM_CALLBACK_URL=$LASTFM_CALLBACK_URL
+          LAYA_BASE_URL=$LAYA_BASE_URL
+          LAYA_API_KEY=$LAYA_API_KEY
+          LAYA_TIMEOUT_SECONDS=${LAYA_TIMEOUT_SECONDS:-2.5}
+          TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
+          TELEGRAM_CHAT_ID=$TELEGRAM_CHAT_ID
+          GITHUB_TOKEN=$GITHUB_TOKEN
+          GITHUB_REPO=${GITHUB_REPO:-Alejopek/Sonora}
+          UPTIME_KUMA_DATA_DIR=${UPTIME_KUMA_DATA_DIR:-/home/server-ale/appa/uptime-kuma/uptime-kuma-data}
+          GH_CONFIG_DIR=${GH_CONFIG_DIR:-/home/server-ale/.config/gh}
+          EOF
+
           docker compose up -d --build --remove-orphans
 
       - name: Set deployment URL
